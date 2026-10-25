@@ -10,6 +10,9 @@ type Pipeline struct {
 	// Jobs are the visible jobs, in file order. Hidden jobs (`.name`) only
 	// serve as `extends` parents and are not listed.
 	Jobs []*Job
+	// Defaults is what jobs inherit from `default:` and the legacy top-level
+	// keywords, with the line it is written on.
+	Defaults Defaults
 	// Problems lists what could not be read. Parsing never stops at the
 	// first one: whatever could be read is still in Workflow and Jobs.
 	Problems []Problem
@@ -72,15 +75,30 @@ type Filter struct {
 	Changes bool
 }
 
+// Defaults are the values a job takes when it does not set them itself.
+type Defaults struct {
+	// Image is nil when there is no default image.
+	Image *Image
+	// ImageLine is the line of `default:`, or of the top-level `image:`.
+	ImageLine int
+	// Artifacts is nil when `default:` has no artifacts.
+	Artifacts     *Artifacts
+	ArtifactsLine int
+}
+
 // Image is the container image a job runs in.
 type Image struct {
 	Name string
+	// Inherited is true when the job took it from Defaults.
+	Inherited bool
 }
 
 // Artifacts is the part of `artifacts:` the rules look at.
 type Artifacts struct {
 	// ExpireIn is empty when `expire_in` is not set.
 	ExpireIn string
+	// Inherited is true when the job took them from Defaults.
+	Inherited bool
 }
 
 // Problem kinds.

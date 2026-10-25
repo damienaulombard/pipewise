@@ -110,7 +110,7 @@ func TestParseNestedExtends(t *testing.T) {
 			Extends:       []string{".go", ".release"},
 		},
 		{Name: "standalone", Line: 39, Stage: "test"},
-		{Name: "partial", Line: 45, Stage: "test", Image: &Image{Name: "alpine:3.20"}},
+		{Name: "partial", Line: 45, Stage: "test", Image: &Image{Name: "alpine:3.20", Inherited: true}},
 	})
 }
 
@@ -430,12 +430,12 @@ func TestParseEdgeCases(t *testing.T) {
 		{
 			name: "legacy top-level image is a default",
 			src:  "image: ruby:3.3\nbuild:\n  script: [x]\n",
-			want: []*Job{{Name: "build", Line: 2, Stage: "test", Image: &Image{Name: "ruby:3.3"}}},
+			want: []*Job{{Name: "build", Line: 2, Stage: "test", Image: &Image{Name: "ruby:3.3", Inherited: true}}},
 		},
 		{
 			name: "default: wins over the legacy top-level image",
 			src:  "image: ruby:3.3\ndefault:\n  image: ruby:3.4\nbuild:\n  script: [x]\n",
-			want: []*Job{{Name: "build", Line: 4, Stage: "test", Image: &Image{Name: "ruby:3.4"}}},
+			want: []*Job{{Name: "build", Line: 4, Stage: "test", Image: &Image{Name: "ruby:3.4", Inherited: true}}},
 		},
 		{
 			name: "image mapping without a name",
@@ -595,5 +595,66 @@ func flatten(v any) any {
 		return out
 	default:
 		return v
+	}
+}
+
+func TestParseDefaults(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		want Defaults
+		// jobs maps a job name to whether its image and artifacts are
+		// inherited.
+		jobs map[string][2]bool
+	}{
+		{
+			name: "default: image and artifacts",
+			src: "stages: [test]\ndefault:\n  image: node:22\n  artifacts:\n    paths: [out/]\n" +
+				"lint:\n  script: [x]\nbuild:\n  image: golang:1.26\n  artifacts:\n    expire_in: 1 day\n",
+			want: Defaults{
+				Image: &Image{Name: "node:22"}, ImageLine: 2,
+				Artifacts: &Artifacts{}, ArtifactsLine: 2,
+			},
+			jobs: map[string][2]bool{"lint": {true, true}, "build": {false, false}},
+		},
+		{
+			name: "legacy top-level image",
+			src:  "variables: {A: 1}\nimage: ruby:3.3\nlint:\n  script: [x]\n",
+			want: Defaults{Image: &Image{Name: "ruby:3.3"}, ImageLine: 2},
+			jobs: map[string][2]bool{"lint": {true, false}},
+		},
+		{
+			name: "default: without an image falls back to the top-level one",
+			src:  "image: ruby:3.3\ndefault:\n  interruptible: true\nlint:\n  script: [x]\n",
+			want: Defaults{Image: &Image{Name: "ruby:3.3"}, ImageLine: 1},
+			jobs: map[string][2]bool{"lint": {true, false}},
+		},
+		{
+			name: "no defaults",
+			src:  "lint:\n  script: [x]\n",
+			want: Defaults{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := Parse([]byte(tt.src))
+			if len(p.Problems) != 0 {
+				t.Fatalf("problems: %+v", p.Problems)
+			}
+			if !reflect.DeepEqual(p.Defaults, tt.want) {
+				t.Errorf("defaults:\n got  %+v\n want %+v", p.Defaults, tt.want)
+			}
+			for _, j := range p.Jobs {
+				want, ok := tt.jobs[j.Name]
+				if !ok {
+					continue
+				}
+				gotImage := j.Image != nil && j.Image.Inherited
+				gotArtifacts := j.Artifacts != nil && j.Artifacts.Inherited
+				if gotImage != want[0] || gotArtifacts != want[1] {
+					t.Errorf("%s inherits image=%v artifacts=%v, want %v", j.Name, gotImage, gotArtifacts, want)
+				}
+			}
+		})
 	}
 }

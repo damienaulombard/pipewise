@@ -104,6 +104,7 @@ func (p *parser) parse(data []byte) {
 
 	r := newResolver(raw)
 	defaults := defaultsOf(raw)
+	p.parseDefaults(raw, defaults, entries)
 	for _, e := range entries {
 		if globalKeywords[e.name] || strings.HasPrefix(e.name, ".") {
 			continue
@@ -117,7 +118,8 @@ func (p *parser) parse(data []byte) {
 			p.problem(KindParseError, e.name, e.line, "%v", err)
 			continue
 		}
-		p.pipeline.Jobs = append(p.pipeline.Jobs, p.toJob(e, applyDefaults(resolved, defaults)))
+		m, inherited := applyDefaults(resolved, defaults)
+		p.pipeline.Jobs = append(p.pipeline.Jobs, p.toJob(e, m, inherited))
 	}
 }
 
@@ -146,7 +148,33 @@ func (p *parser) parseWorkflow(v any, line int) {
 	p.pipeline.Workflow = w
 }
 
-func (p *parser) toJob(e entry, m map[string]any) *Job {
+// parseDefaults records the default image and artifacts and where they are
+// written: on `default:`, or for the image on the legacy top-level `image:`.
+func (p *parser) parseDefaults(raw, defaults map[string]any, entries []entry) {
+	d := &p.pipeline.Defaults
+	defaultLine := lineOf(entries, "default")
+	if v, ok := defaults["image"]; ok {
+		d.ImageLine = defaultLine
+		if dm, isMap := raw["default"].(map[string]any); !isMap || dm["image"] == nil {
+			d.ImageLine = lineOf(entries, "image")
+		}
+		d.Image = p.toImage(v, entry{name: "default", line: d.ImageLine})
+	}
+	if a, ok := defaults["artifacts"].(map[string]any); ok {
+		d.Artifacts = toArtifacts(a)
+		d.ArtifactsLine = defaultLine
+	}
+}
+
+func toArtifacts(a map[string]any) *Artifacts {
+	out := &Artifacts{}
+	if s, ok := a["expire_in"].(string); ok {
+		out.ExpireIn = s
+	}
+	return out
+}
+
+func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Job {
 	j := &Job{Name: e.name, Line: e.line, Stage: "test"}
 	if s, ok := m["stage"].(string); ok {
 		j.Stage = s
@@ -161,11 +189,12 @@ func (p *parser) toJob(e entry, m map[string]any) *Job {
 	j.Only = p.toFilter(m["only"], "only", e)
 	j.Except = p.toFilter(m["except"], "except", e)
 	j.Image = p.toImage(m["image"], e)
+	if j.Image != nil {
+		j.Image.Inherited = inherited["image"]
+	}
 	if a, ok := m["artifacts"].(map[string]any); ok {
-		j.Artifacts = &Artifacts{}
-		if s, ok := a["expire_in"].(string); ok {
-			j.Artifacts.ExpireIn = s
-		}
+		j.Artifacts = toArtifacts(a)
+		j.Artifacts.Inherited = inherited["artifacts"]
 	}
 	if b, ok := m["interruptible"].(bool); ok {
 		j.Interruptible = &b

@@ -107,14 +107,15 @@ func defaultsOf(raw map[string]any) map[string]any {
 }
 
 // applyDefaults fills the keys a job leaves unset from defaults, honouring
-// `inherit: default:` (true, false, or the list of keywords to take).
-func applyDefaults(job, defaults map[string]any) map[string]any {
+// `inherit: default:` (true, false, or the list of keywords to take). It
+// also returns the keys it filled.
+func applyDefaults(job, defaults map[string]any) (map[string]any, map[string]bool) {
 	allowed := func(string) bool { return true }
 	if inherit, ok := job["inherit"].(map[string]any); ok {
 		switch d := inherit["default"].(type) {
 		case bool:
 			if !d {
-				return job
+				return job, nil
 			}
 		case []any:
 			keep := map[string]bool{}
@@ -128,10 +129,12 @@ func applyDefaults(job, defaults map[string]any) map[string]any {
 	for k, v := range job {
 		out[k] = v
 	}
+	inherited := map[string]bool{}
 	for k, v := range defaults {
 		if _, set := out[k]; !set && allowed(k) {
 			out[k] = v
+			inherited[k] = true
 		}
 	}
-	return out
+	return out, inherited
 }

@@ -169,7 +169,7 @@ a:
   rules: [{when: on_success}]
 `)
 	var jobs []string
-	for _, f := range findings {
+	for _, f := range only(findings, "redundant-job") {
 		jobs = append(jobs, f.Job)
 	}
 	if strings.Join(jobs, ",") != "b,a" {
@@ -193,7 +193,7 @@ func TestRuleIDsAreStable(t *testing.T) {
 	for _, r := range All() {
 		ids = append(ids, r.ID())
 	}
-	if got := strings.Join(ids, ","); got != "redundant-job" {
+	if got := strings.Join(ids, ","); got != "redundant-job,no-rules,missing-interruptible,floating-image,artifacts-no-expiry" {
 		t.Errorf("rule ids = %s", got)
 	}
 }
@@ -214,7 +214,9 @@ func TestFindingsOnTheSameLine(t *testing.T) {
 `)
 	var got []string
 	for _, f := range findings {
-		got = append(got, f.Rule+"/"+f.Job)
+		if f.Rule == "parse-error" || f.Rule == "redundant-job" {
+			got = append(got, f.Rule+"/"+f.Job)
+		}
 	}
 	want := "parse-error/alpha,redundant-job/alpha,redundant-job/zeta"
 	if strings.Join(got, ",") != want {
