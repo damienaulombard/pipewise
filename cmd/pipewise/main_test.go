@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"testing"
 )
@@ -33,6 +34,36 @@ func writeConfig(t *testing.T, yaml string) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func TestCurrentVersion(t *testing.T) {
+	savedVersion, savedRead := version, readBuildInfo
+	t.Cleanup(func() { version, readBuildInfo = savedVersion, savedRead })
+	info := func(v string) func() (*debug.BuildInfo, bool) {
+		return func() (*debug.BuildInfo, bool) {
+			return &debug.BuildInfo{Main: debug.Module{Path: "github.com/damienaulombard/pipewise", Version: v}}, true
+		}
+	}
+	tests := []struct {
+		name     string
+		injected string
+		read     func() (*debug.BuildInfo, bool)
+		want     string
+	}{
+		{"injected at build time", "v0.1.0", info("v0.0.9"), "v0.1.0"},
+		{"go install of a tag", "dev", info("v0.1.0"), "v0.1.0"},
+		{"go install of a commit", "dev", info("v0.0.0-20261025174543-1e18496dd55a"), "v0.0.0-20261025174543-1e18496dd55a"},
+		{"built from a checkout", "dev", info("(devel)"), "dev"},
+		{"no build information", "dev", func() (*debug.BuildInfo, bool) { return nil, false }, "dev"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			version, readBuildInfo = tt.injected, tt.read
+			if got := currentVersion(); got != tt.want {
+				t.Errorf("currentVersion() = %q, want %q", got, tt.want)
+			}
+		})
+	}
 }
 
 func TestVersionCommand(t *testing.T) {

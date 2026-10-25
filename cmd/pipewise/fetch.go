@@ -64,7 +64,7 @@ func fetch(cmd *cobra.Command, project, ref, output string) error {
 	client := &gitlab.Client{
 		BaseURL:   base,
 		Token:     os.Getenv("GITLAB_TOKEN"),
-		UserAgent: "pipewise/" + version,
+		UserAgent: "pipewise/" + currentVersion(),
 		HTTP:      &http.Client{Timeout: fetchTimeout},
 	}
 	lint, err := client.MergedConfig(cmd.Context(), project, ref)
