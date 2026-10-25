@@ -8,7 +8,7 @@ import (
 )
 
 func analyze(yaml string) []Finding {
-	return Analyze([]byte(yaml), eval.Options{DefaultBranch: "main"})
+	return Analyze([]byte(yaml), eval.Options{DefaultBranch: "main"}).Findings
 }
 
 func only(findings []Finding, rule string) []Finding {
@@ -226,5 +226,12 @@ func TestFindingsOnTheSameLine(t *testing.T) {
 		if f.Line != 10 {
 			t.Errorf("%s on line %d, want 10", f.Rule, f.Line)
 		}
+	}
+}
+
+func TestAnalyzeReturnsVerdicts(t *testing.T) {
+	o := Analyze([]byte("lint:\n  script: [x]\n"), eval.Options{DefaultBranch: "main"})
+	if len(o.Jobs) != 1 || o.Jobs[0].Job.Name != "lint" || o.Jobs[0].On(eval.DefaultBranch) != eval.Runs {
+		t.Errorf("jobs = %+v", o.Jobs)
 	}
 }

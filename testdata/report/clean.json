@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "file": ".gitlab-ci.yml",
+  "findings": [],
+  "jobs": [
+    {
+      "name": "unit",
+      "line": 1,
+      "verdicts": {
+        "merge_request": "runs",
+        "default_branch": "skipped",
+        "tag": "skipped"
+      }
+    }
+  ],
+  "summary": {
+    "error": 0,
+    "warning": 0,
+    "info": 0
+  }
+}

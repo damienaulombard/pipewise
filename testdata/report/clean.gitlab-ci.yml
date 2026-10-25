@@ -1,0 +1,9 @@
+unit:
+  image: golang:1.26@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  interruptible: true
+  script: [go test ./...]
+  artifacts:
+    paths: [coverage.out]
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
