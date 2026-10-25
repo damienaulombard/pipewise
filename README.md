@@ -49,7 +49,9 @@ pipewise fetch --project group/app --ref v1.2.0 -o merged.yml
 ```
 
 `fetch` reads the token from `GITLAB_TOKEN` and the instance from `GITLAB_URL`
-(default `https://gitlab.com`). Public projects need no token.
+(default `https://gitlab.com`, or your self-managed instance). Public projects
+need no token. A private project needs a token with the `read_api` scope;
+without one, GitLab answers 404, as if the project did not exist.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
