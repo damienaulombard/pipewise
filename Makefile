@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test cover lint fmt tidy-check check
+.PHONY: build test cover cover-eval lint fmt tidy-check check
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o bin/pipewise ./cmd/pipewise
@@ -13,6 +13,11 @@ cover:
 	go test -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out | tail -1
 
+# internal/eval decides every verdict: it stays at 100 % statement coverage.
+cover-eval:
+	go test -coverprofile=coverage-eval.out ./internal/eval/
+	@go tool cover -func=coverage-eval.out | awk '/^total:/ { print "internal/eval coverage: " $$3; if ($$3 != "100.0%") exit 1 }'
+
 lint:
 	golangci-lint run
 
@@ -23,4 +28,4 @@ fmt:
 tidy-check:
 	go mod tidy -diff
 
-check: tidy-check lint test
+check: tidy-check lint test cover-eval

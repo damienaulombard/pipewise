@@ -53,9 +53,12 @@ type Rule struct {
 	When string
 	// Changes and Exists only record that the clause is present: their
 	// outcome depends on the files of a commit, which pipewise does not see.
-	Changes      bool
-	Exists       bool
-	AllowFailure *bool
+	Changes bool
+	// ChangesCompareTo records `changes: compare_to:`, which makes the clause
+	// compare against a ref even in pipelines without a push, such as tags.
+	ChangesCompareTo bool
+	Exists           bool
+	AllowFailure     *bool
 	// Reference is set for a `!reference [...]` entry that was not resolved,
 	// as the dotted path it points to. The rule's content is then unknown.
 	Reference string

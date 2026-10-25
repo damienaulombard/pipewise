@@ -28,5 +28,7 @@ jobs:
           version: v2.15.0
       - name: Test
         run: make test
+      - name: internal/eval at 100 % coverage
+        run: make cover-eval
       - name: Build
         run: make build

@@ -372,6 +372,14 @@ func TestParseEdgeCases(t *testing.T) {
 			want: []*Job{{Name: "build", Line: 1, Stage: "test", Image: &Image{}}},
 		},
 		{
+			name: "changes with compare_to",
+			src:  "build:\n  rules:\n    - changes:\n        paths: [go.mod]\n        compare_to: main\n    - changes:\n        paths: [go.sum]\n",
+			want: []*Job{{
+				Name: "build", Line: 1, Stage: "test", HasRules: true,
+				Rules: []Rule{{Changes: true, ChangesCompareTo: true}, {Changes: true}},
+			}},
+		},
+		{
 			name: "rules: [] is not the same as no rules",
 			src:  "build:\n  rules: []\n",
 			want: []*Job{{Name: "build", Line: 1, Stage: "test", HasRules: true}},
