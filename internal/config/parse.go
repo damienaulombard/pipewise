@@ -210,6 +210,9 @@ func toRule(m map[string]any) Rule {
 		r.When = s
 	}
 	_, r.Changes = m["changes"]
+	if c, ok := m["changes"].(map[string]any); ok {
+		_, r.ChangesCompareTo = c["compare_to"]
+	}
 	_, r.Exists = m["exists"]
 	if b, ok := m["allow_failure"].(bool); ok {
 		r.AllowFailure = &b

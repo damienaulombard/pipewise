@@ -84,7 +84,7 @@ pipewise/
 │   │   ├── context.go            # les 3 événements et leurs variables
 │   │   ├── expr.go               # parseur/évaluateur d'expressions `if`
 │   │   ├── rules.go              # applique rules/only/except/workflow → verdict
-│   │   └── eval_test.go
+│   │   └── *_test.go             # un fichier de test par fichier source
 │   ├── rules/                    # une règle = un fichier
 │   │   ├── rule.go               # interface Rule { ID, Severity, Check(*Analysis) []Finding }
 │   │   ├── redundant_job.go
@@ -102,7 +102,8 @@ pipewise/
 
 Dépendances : `gopkg.in/yaml.v3`, `github.com/spf13/cobra`. Rien d'autre sans raison.
 Tests : table-driven, fixtures dans `testdata/`, golden files pour la sortie texte.
-**100 % de couverture sur `internal/eval`** : c'est le composant qui conditionne tout le reste.
+**100 % de couverture sur `internal/eval`**, imposé par `make cover-eval` (dans `make check` et la CI) :
+c'est le composant qui conditionne tout le reste.
 Les règles de `internal/rules` ne commencent pas avant.
 
 La sortie `--format json` et les ids de règles sont l'API publique du CLI : un outil qui
