@@ -1,0 +1,17 @@
+# references.gitlab-ci.yml written out in full, without !reference.
+lint:
+  image: golang:1.26
+  script:
+    - go mod download
+    - make lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: never
+
+release:
+  image: golang:1.26
+  script: [goreleaser]
+  rules:
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

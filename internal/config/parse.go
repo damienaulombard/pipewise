@@ -94,6 +94,8 @@ func (p *parser) parse(data []byte) {
 		entries = append(entries, entry{name: name, line: mergeLine})
 	}
 
+	raw = p.resolveReferences(raw, entries)
+
 	if _, ok := raw["include"]; ok {
 		p.problem(KindUnresolvedInclude, "", lineOf(entries, "include"),
 			"include: is not resolved; analyse the merged configuration (pipewise fetch) to see the included jobs")
@@ -176,8 +178,8 @@ func (p *parser) toJob(e entry, m map[string]any) *Job {
 func (p *parser) toRules(v any, job string, line int) []Rule {
 	list, ok := v.([]any)
 	if !ok {
-		if ref, isRef := v.(reference); isRef {
-			p.unresolved(ref, job)
+		// A reference still here could not be resolved, and was reported.
+		if ref, isRef := v.(*reference); isRef {
 			return []Rule{{Reference: ref.String()}}
 		}
 		p.problem(KindParseError, job, line, "rules: must be a list")
@@ -188,8 +190,7 @@ func (p *parser) toRules(v any, job string, line int) []Rule {
 		switch it := item.(type) {
 		case map[string]any:
 			out = append(out, toRule(it))
-		case reference:
-			p.unresolved(it, job)
+		case *reference:
 			out = append(out, Rule{Reference: it.String()})
 		case []any:
 			// GitLab flattens nested lists in rules; they come from references.
@@ -220,12 +221,6 @@ func toRule(m map[string]any) Rule {
 	return r
 }
 
-func (p *parser) unresolved(ref reference, job string) {
-	p.problem(KindUnresolvedReference, job, ref.line,
-		"!reference [%s] is not resolved; the rule it stands for is treated as unknown",
-		strings.Join(ref.path, ", "))
-}
-
 func (p *parser) toFilter(v any, keyword string, e entry) *Filter {
 	switch f := v.(type) {
 	case nil:
@@ -252,8 +247,8 @@ func (p *parser) toImage(v any, e entry) *Image {
 	case map[string]any:
 		name, _ := img["name"].(string)
 		return &Image{Name: name}
-	case reference:
-		p.unresolved(img, e.name)
+	case *reference:
+		// Unresolved and already reported: the image is unknown.
 		return nil
 	default:
 		p.problem(KindParseError, e.name, e.line, "image: must be a string or a mapping")
