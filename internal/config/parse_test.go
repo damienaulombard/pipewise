@@ -658,3 +658,59 @@ func TestParseDefaults(t *testing.T) {
 		})
 	}
 }
+
+// A CI/CD configuration can start with a spec: header, holding its inputs,
+// separated from the configuration by ---. The jobs are in the second
+// document; the header is not a job.
+func TestParseSpecHeader(t *testing.T) {
+	p := Parse([]byte(`spec:
+  inputs:
+    image_tag:
+      default: latest
+---
+lint:
+  script: [x]
+  rules:
+    - when: on_success
+`))
+	if len(p.Problems) != 0 {
+		t.Fatalf("problems: %+v", p.Problems)
+	}
+	assertJobs(t, p.Jobs, []*Job{{
+		Name: "lint", Line: 6, Stage: "test", HasRules: true,
+		Rules: []Rule{{When: "on_success"}},
+	}})
+}
+
+func TestParseDocuments(t *testing.T) {
+	tests := []struct {
+		name string
+		src  string
+		jobs []string
+		kind string // the only expected problem, if any
+	}{
+		{"a spec header alone", "spec:\n  inputs: {}\n", nil, ""},
+		// Nothing follows the header: GitLab rejects an empty configuration.
+		{"a spec header and an empty document", "spec:\n  inputs: {}\n---\n", nil, KindParseError},
+		{"a first document that is not a header is the configuration", "lint:\n  script: [x]\n---\nother:\n  script: [x]\n", []string{"lint"}, ""},
+		{"invalid YAML in the second document", "spec:\n  inputs: {}\n---\nlint: [\n", nil, KindParseError},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := Parse([]byte(tt.src))
+			var names []string
+			for _, j := range p.Jobs {
+				names = append(names, j.Name)
+			}
+			if !reflect.DeepEqual(names, tt.jobs) {
+				t.Errorf("jobs = %v, want %v", names, tt.jobs)
+			}
+			switch {
+			case tt.kind == "" && len(p.Problems) != 0:
+				t.Errorf("problems: %+v", p.Problems)
+			case tt.kind != "" && (len(p.Problems) != 1 || p.Problems[0].Kind != tt.kind):
+				t.Errorf("problems = %+v, want one %s", p.Problems, tt.kind)
+			}
+		})
+	}
+}

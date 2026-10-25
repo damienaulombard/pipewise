@@ -1,7 +1,10 @@
 package config
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
@@ -14,6 +17,7 @@ var globalKeywords = map[string]bool{
 	"before_script": true,
 	"cache":         true,
 	"default":       true,
+	"spec":          true,
 	"image":         true,
 	"include":       true,
 	"services":      true,
@@ -44,21 +48,49 @@ func (p *parser) problem(kind, job string, line int, format string, args ...any)
 	})
 }
 
+// documents decodes every YAML document of data.
+func documents(data []byte) ([]*yaml.Node, error) {
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	var docs []*yaml.Node
+	for {
+		var doc yaml.Node
+		err := dec.Decode(&doc)
+		if errors.Is(err, io.EOF) {
+			return docs, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, &doc)
+	}
+}
+
+// isSpecHeader tells a document holding only `spec:`, the header of a
+// configuration with inputs.
+func isSpecHeader(n *yaml.Node) bool {
+	return n.Kind == yaml.MappingNode && len(n.Content) == 2 && n.Content[0].Value == "spec"
+}
+
 type entry struct {
 	name string
 	line int
 }
 
 func (p *parser) parse(data []byte) {
-	var doc yaml.Node
-	if err := yaml.Unmarshal(data, &doc); err != nil {
+	docs, err := documents(data)
+	if err != nil {
 		p.problem(KindParseError, "", 0, "invalid YAML: %v", err)
 		return
 	}
-	if len(doc.Content) == 0 {
+	if len(docs) == 0 || len(docs[0].Content) == 0 {
 		return
 	}
-	root := doc.Content[0]
+	root := docs[0].Content[0]
+	// A file with inputs starts with a spec: header, then --- and the
+	// configuration itself.
+	if isSpecHeader(root) && len(docs) > 1 && len(docs[1].Content) > 0 {
+		root = docs[1].Content[0]
+	}
 	if root.Kind != yaml.MappingNode {
 		p.problem(KindParseError, "", root.Line, "the configuration must be a mapping of keywords and jobs")
 		return
