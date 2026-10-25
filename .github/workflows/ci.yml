@@ -1,0 +1,32 @@
+name: CI
+
+# Pull requests only: the pull request already tests the commit that lands on
+# main, so running again on main or on a tag could not reveal anything new.
+on:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: go.mod is tidy
+        run: make tidy-check
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+      - name: Test
+        run: make test
+      - name: Build
+        run: make build
