@@ -74,6 +74,14 @@ func suggestion(job, rule string, legacy bool) string {
 	return b.String()
 }
 
+// usedBy says which jobs use a default value, in the singular or plural.
+func usedBy(jobs []string, what string) string {
+	if len(jobs) == 1 {
+		return fmt.Sprintf("job %s uses %s", jobs[0], what)
+	}
+	return fmt.Sprintf("jobs %s use %s", joinAnd(jobs), what)
+}
+
 // joinAnd joins "a", "b", "c" as "a, b and c". It takes two items or more.
 func joinAnd(items []string) string {
 	return strings.Join(items[:len(items)-1], ", ") + " and " + items[len(items)-1]

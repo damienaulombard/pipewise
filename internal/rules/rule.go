@@ -61,7 +61,7 @@ type Rule interface {
 
 // All returns every rule, in a stable order.
 func All() []Rule {
-	return []Rule{redundantJob{}}
+	return []Rule{redundantJob{}, noRules{}, missingInterruptible{}, floatingImage{}, artifactsNoExpiry{}}
 }
 
 // Analyze parses a configuration, evaluates it and runs every rule. Problems
