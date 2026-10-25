@@ -8,12 +8,28 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/spf13/cobra"
 )
 
 // version is set at build time with -ldflags "-X main.version=<tag>".
 var version = "dev"
+
+// readBuildInfo is replaced in tests.
+var readBuildInfo = debug.ReadBuildInfo
+
+// currentVersion is the injected version or, when there is none, as after
+// go install, the module version Go recorded in the binary.
+func currentVersion() string {
+	if version != "dev" {
+		return version
+	}
+	if bi, ok := readBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return version
+}
 
 // Exit codes.
 const (
@@ -79,7 +95,7 @@ func newVersionCmd() *cobra.Command {
 		Short: "Print the pipewise version",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			_, err := fmt.Fprintf(cmd.OutOrStdout(), "pipewise %s\n", version)
+			_, err := fmt.Fprintf(cmd.OutOrStdout(), "pipewise %s\n", currentVersion())
 			return err
 		},
 	}

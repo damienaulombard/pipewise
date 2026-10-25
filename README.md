@@ -31,6 +31,10 @@ them.
 go install github.com/damienaulombard/pipewise/cmd/pipewise@latest
 ```
 
+Or download an archive for Linux, macOS or Windows from the
+[releases](https://github.com/damienaulombard/pipewise/releases), and check it
+against `SHA256SUMS`.
+
 ## Use
 
 ```sh
