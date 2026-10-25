@@ -23,8 +23,7 @@ them.
         - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 ```
 
-> Status: early development. Configuration files only: fetching the merged
-> configuration from the GitLab API is not there yet.
+> Status: early development.
 
 ## Install
 
@@ -41,8 +40,16 @@ cat .gitlab-ci.yml | pipewise lint -
 ```
 
 pipewise analyses the configuration as written. If it uses `include:`, analyse
-the merged configuration instead, shown in the **Full configuration** tab of
-GitLab's pipeline editor.
+the merged configuration instead, which `pipewise fetch` downloads from GitLab
+with every include expanded:
+
+```sh
+pipewise fetch --project group/app | pipewise lint -
+pipewise fetch --project group/app --ref v1.2.0 -o merged.yml
+```
+
+`fetch` reads the token from `GITLAB_TOKEN` and the instance from `GITLAB_URL`
+(default `https://gitlab.com`). Public projects need no token.
 
 | Flag | Default | Meaning |
 | --- | --- | --- |

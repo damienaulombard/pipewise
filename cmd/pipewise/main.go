@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +17,9 @@ var version = "dev"
 
 // Exit codes.
 const (
-	exitOK       = 0
+	exitOK = 0
+	// exitFindings: the check failed, findings at or above --fail-on for
+	// lint, or a configuration GitLab rejects for fetch.
 	exitFindings = 1
 	exitError    = 2
 )
@@ -37,12 +40,16 @@ func (e *findingsError) Error() string {
 func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	root := newRootCmd(stdin, stdout, stderr)
 	root.SetArgs(args)
-	err := root.Execute()
+	err := root.ExecuteContext(context.Background())
 	var fe *findingsError
+	var ic *invalidConfigError
 	switch {
 	case err == nil:
 		return exitOK
 	case errors.As(err, &fe):
+		return exitFindings
+	case errors.As(err, &ic):
+		_, _ = fmt.Fprintf(stderr, "pipewise: %v\n", err)
 		return exitFindings
 	default:
 		// If stderr cannot be written to, there is nowhere left to say so;
@@ -62,7 +69,7 @@ func newRootCmd(stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
 	root.SetIn(stdin)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.AddCommand(newVersionCmd(), newLintCmd())
+	root.AddCommand(newVersionCmd(), newLintCmd(), newFetchCmd())
 	return root
 }
 

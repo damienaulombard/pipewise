@@ -111,7 +111,7 @@ func problemFinding(pb config.Problem) Finding {
 			"but verdicts that depend on this part are unreliable."
 	case config.KindUnresolvedInclude:
 		f.Explanation = "Jobs from included files are not analysed. " +
-			"Analyse the merged configuration instead, shown in the Full configuration tab of GitLab's pipeline editor."
+			"Analyse the merged configuration instead: pipewise fetch --project <group/project> | pipewise lint -"
 	default:
 		f.Explanation = "pipewise cannot tell what this part stands for, " +
 			"so the jobs that depend on it are reported as \"maybe\"."
