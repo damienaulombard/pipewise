@@ -128,7 +128,8 @@ func (p *parser) parse(data []byte) {
 
 	raw = p.resolveReferences(raw, entries)
 
-	if _, ok := raw["include"]; ok {
+	_, hasInclude := raw["include"]
+	if hasInclude {
 		p.problem(KindUnresolvedInclude, "", lineOf(entries, "include"),
 			"include: is not resolved; analyse the merged configuration (pipewise fetch) to see the included jobs")
 	}
@@ -146,7 +147,15 @@ func (p *parser) parse(data []byte) {
 			continue
 		}
 		resolved, err := r.resolve(e.name)
-		if err != nil {
+		var missing *missingParentError
+		switch {
+		case errors.As(err, &missing) && hasInclude:
+			// GitLab finds the parent in an included file: not an error,
+			// but the job cannot be analysed without it.
+			p.problem(KindUnresolvedInclude, e.name, e.line,
+				"extends %q: not in this file, probably in an included one; the job is not analysed", missing.name)
+			continue
+		case err != nil:
 			p.problem(KindParseError, e.name, e.line, "%v", err)
 			continue
 		}

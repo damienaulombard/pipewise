@@ -714,3 +714,27 @@ func TestParseDocuments(t *testing.T) {
 		})
 	}
 }
+
+// With include: left unresolved, a missing extends parent is most likely in
+// an included file: GitLab would not reject the configuration, so it is not
+// a parse error. The job is not analysed, since its parent is unknown.
+func TestParseExtendsFromInclude(t *testing.T) {
+	p := Parse([]byte(`include:
+  - local: ci/auth.yml
+deploy:
+  extends: .google-oidc:auth
+  script: [x]
+lint:
+  script: [x]
+`))
+	want := []Problem{
+		{Kind: KindUnresolvedInclude, Line: 1,
+			Message: "include: is not resolved; analyse the merged configuration (pipewise fetch) to see the included jobs"},
+		{Kind: KindUnresolvedInclude, Job: "deploy", Line: 3,
+			Message: `extends ".google-oidc:auth": not in this file, probably in an included one; the job is not analysed`},
+	}
+	if !reflect.DeepEqual(p.Problems, want) {
+		t.Errorf("problems:\n got  %+v\n want %+v", p.Problems, want)
+	}
+	assertJobs(t, p.Jobs, []*Job{{Name: "lint", Line: 6, Stage: "test"}})
+}

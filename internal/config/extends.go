@@ -31,7 +31,7 @@ func (r *resolver) resolve(name string) (map[string]any, error) {
 	}
 	own, ok := r.raw[name].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("extends %q: no such job or hidden job", name)
+		return nil, &missingParentError{name: name}
 	}
 
 	r.visiting = append(r.visiting, name)
@@ -53,6 +53,13 @@ func (r *resolver) resolve(name string) (map[string]any, error) {
 	}
 	r.resolved[name] = out
 	return out, nil
+}
+
+// missingParentError is an extends parent this file does not define.
+type missingParentError struct{ name string }
+
+func (e *missingParentError) Error() string {
+	return fmt.Sprintf("extends %q: no such job or hidden job", e.name)
 }
 
 // deepMerge returns base overlaid with over, without modifying either.
