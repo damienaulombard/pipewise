@@ -1,0 +1,48 @@
+default:
+  image: alpine:3.20
+  interruptible: true
+
+.base:
+  variables:
+    GOFLAGS: -mod=readonly
+    CGO_ENABLED: "0"
+  artifacts:
+    expire_in: 1 day
+
+.go:
+  extends: .base
+  image: golang:1.26
+  variables:
+    CGO_ENABLED: "1"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.release:
+  rules:
+    - if: $CI_COMMIT_TAG
+  artifacts:
+    paths: [dist/]
+
+# Three levels: unit -> .go -> .base. Its own rules replace the inherited ones.
+unit:
+  extends: .go
+  script: [go test ./...]
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+# Two parents: .release comes last, so its rules win; artifacts are merged.
+package:
+  extends: [.go, .release]
+  script: [goreleaser]
+
+# Inherits nothing from default:.
+standalone:
+  inherit:
+    default: false
+  script: [echo]
+
+# Inherits only the image from default:.
+partial:
+  inherit:
+    default: [image]
+  script: [echo]

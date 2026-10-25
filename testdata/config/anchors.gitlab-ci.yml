@@ -1,0 +1,34 @@
+.mr-only: &mr-only
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.defaults: &defaults
+  image: node:22
+  interruptible: true
+  stage: test
+
+.release: &release
+  stage: deploy
+  image: node:22-alpine
+
+lint:
+  <<: *defaults
+  script: [npm run lint]
+  rules: *mr-only
+
+# Written keys win over merged ones.
+e2e:
+  <<: *defaults
+  image: mcr.microsoft.com/playwright:v1.60.0
+  script: [npm run e2e]
+
+# With several sources, the first one listed wins.
+publish:
+  <<: [*release, *defaults]
+  script: [npm publish]
+
+# A !reference is kept as an unresolved rule, not read as a plain list.
+audit:
+  script: [npm audit]
+  rules:
+    - !reference [.mr-only]
+    - when: never
