@@ -7,16 +7,17 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// reference is an unresolved `!reference [path...]` tag.
+// reference is a `!reference [path...]` tag. It is a pointer so that each
+// tag in the file has an identity, which cycle detection relies on.
 type reference struct {
 	path []string
 	line int
 }
 
-func (r reference) String() string { return strings.Join(r.path, ".") }
+func (r *reference) String() string { return strings.Join(r.path, ".") }
 
 // toValue converts a YAML node into plain Go values: map[string]any, []any,
-// scalars, and reference for `!reference` tags. Aliases are followed and
+// scalars, and *reference for `!reference` tags. Aliases are followed and
 // merge keys (`<<`) applied, the way GitLab reads them: keys written in the
 // mapping win over merged ones, and earlier merge sources win over later ones.
 //
@@ -52,12 +53,16 @@ func toValue(n *yaml.Node) (any, error) {
 }
 
 func toReference(n *yaml.Node) (any, error) {
-	ref := reference{line: n.Line}
+	ref := &reference{line: n.Line}
 	for _, c := range n.Content {
-		if c.Kind != yaml.ScalarNode {
+		// GitLab accepts only strings: a key written 1 or true is rejected.
+		if c.Kind != yaml.ScalarNode || c.ShortTag() != "!!str" {
 			return nil, fmt.Errorf("line %d: !reference expects a list of keys", n.Line)
 		}
 		ref.path = append(ref.path, c.Value)
+	}
+	if len(ref.path) == 0 {
+		return nil, fmt.Errorf("line %d: !reference expects a list of keys", n.Line)
 	}
 	return ref, nil
 }

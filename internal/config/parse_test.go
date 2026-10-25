@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func ptr[T any](v T) *T { return &v }
@@ -115,12 +117,8 @@ func TestParseNestedExtends(t *testing.T) {
 func TestParseAnchors(t *testing.T) {
 	p := parseFixture(t, "anchors.gitlab-ci.yml")
 
-	wantProblems := []Problem{{
-		Kind: KindUnresolvedReference, Job: "audit", Line: 33,
-		Message: "!reference [.mr-only] is not resolved; the rule it stands for is treated as unknown",
-	}}
-	if !reflect.DeepEqual(p.Problems, wantProblems) {
-		t.Errorf("problems:\n got  %+v\n want %+v", p.Problems, wantProblems)
+	if len(p.Problems) != 0 {
+		t.Fatalf("unexpected problems: %+v", p.Problems)
 	}
 	assertJobs(t, p.Jobs, []*Job{
 		{
@@ -143,7 +141,10 @@ func TestParseAnchors(t *testing.T) {
 		{
 			Name: "audit", Line: 30, Stage: "test",
 			HasRules: true,
-			Rules:    []Rule{{Reference: ".mr-only"}, {When: "never"}},
+			Rules: []Rule{
+				{If: `$CI_PIPELINE_SOURCE == "merge_request_event"`},
+				{When: "never"},
+			},
 		},
 	})
 }
@@ -293,10 +294,80 @@ func TestParseProblems(t *testing.T) {
 			message: "!reference expects a list of keys",
 		},
 		{
+			name:    "empty reference",
+			src:     "build:\n  rules: !reference []\n",
+			kind:    KindParseError,
+			message: "!reference expects a list of keys",
+		},
+		{
+			name:    "reference with a key that is not a string",
+			src:     "build:\n  rules: !reference [.rules, 1]\n",
+			kind:    KindParseError,
+			message: "!reference expects a list of keys",
+		},
+		{
+			name:    "circular references",
+			src:     ".a:\n  x: !reference [.b, y]\n.b:\n  y: !reference [.a, x]\nbuild:\n  script: [x]\n",
+			kind:    KindUnresolvedReference,
+			message: "!reference [.b, y] is part of a circular chain",
+			job:     ".a",
+			line:    2,
+			jobs:    []string{"build"},
+		},
+		{
+			name:    "reference to a null value",
+			src:     ".a:\n  x: null\nbuild:\n  rules: !reference [.a, x]\n",
+			kind:    KindUnresolvedReference,
+			message: "!reference [.a, x] could not be found",
+			job:     "build",
+			line:    4,
+			jobs:    []string{"build"},
+		},
+		{
+			name:    "reference through a list",
+			src:     ".a:\n  - x: 1\nbuild:\n  rules: !reference [.a, x]\n",
+			kind:    KindUnresolvedReference,
+			message: "!reference [.a, x] could not be found",
+			job:     "build",
+			line:    4,
+			jobs:    []string{"build"},
+		},
+		{
+			// References are resolved when the YAML is loaded, before extends:
+			// .child has no rules of its own at that point.
+			name:    "reference to a key only extends provides",
+			src:     ".base:\n  rules: [{when: always}]\n.child:\n  extends: .base\nbuild:\n  rules: !reference [.child, rules]\n",
+			kind:    KindUnresolvedReference,
+			message: "!reference [.child, rules] could not be found",
+			job:     "build",
+			line:    6,
+			jobs:    []string{"build"},
+		},
+		{
+			name:    "a rule left as an unresolved reference",
+			src:     "build:\n  rules:\n    - !reference [.missing]\n    - when: never\n",
+			kind:    KindUnresolvedReference,
+			message: "!reference [.missing] could not be found",
+			job:     "build",
+			line:    3,
+			jobs:    []string{"build"},
+		},
+		{
+			// The template's broken reference is reached through both jobs,
+			// and reported once, against the first key that contains it.
+			name:    "a broken reference reached twice is reported once",
+			src:     ".tpl:\n  x: !reference [.missing]\na:\n  rules: !reference [.tpl, x]\nb:\n  rules: !reference [.tpl, x]\n",
+			kind:    KindUnresolvedReference,
+			message: "!reference [.missing] could not be found",
+			job:     ".tpl",
+			line:    2,
+			jobs:    []string{"a", "b"},
+		},
+		{
 			name:    "rules as a whole is a reference",
 			src:     "build:\n  rules: !reference [.rules, mr]\n",
 			kind:    KindUnresolvedReference,
-			message: "!reference [.rules, mr] is not resolved",
+			message: "!reference [.rules, mr] could not be found; what it stands for is treated as unknown",
 			job:     "build",
 			line:    2,
 			jobs:    []string{"build"},
@@ -305,7 +376,7 @@ func TestParseProblems(t *testing.T) {
 			name:    "image is a reference",
 			src:     "build:\n  image: !reference [.img, image]\n",
 			kind:    KindUnresolvedReference,
-			message: "!reference [.img, image] is not resolved",
+			message: "!reference [.img, image] could not be found",
 			job:     "build",
 			line:    2,
 			jobs:    []string{"build"},
@@ -442,5 +513,87 @@ func TestDeepMerge(t *testing.T) {
 	}
 	if base["variables"].(map[string]any)["B"] != "1" {
 		t.Error("deepMerge modified its base")
+	}
+}
+
+func TestParseReferences(t *testing.T) {
+	got := parseFixture(t, "references.gitlab-ci.yml")
+	want := parseFixture(t, "references-expanded.gitlab-ci.yml")
+	if len(got.Problems) != 0 || len(want.Problems) != 0 {
+		t.Fatalf("unexpected problems: %+v %+v", got.Problems, want.Problems)
+	}
+	// Same jobs as the configuration written out in full; only the lines of
+	// the job keys differ between the two files.
+	for _, p := range []*Pipeline{got, want} {
+		for _, j := range p.Jobs {
+			j.Line = 0
+		}
+	}
+	assertJobs(t, got.Jobs, want.Jobs)
+}
+
+// resolvedRaw returns the visible top-level keys of a fixture once references
+// are resolved, before the typed model: script and the other keys the model
+// does not keep are compared too.
+func resolvedRaw(t *testing.T, name string) map[string]any {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "..", "testdata", "config", name))
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := toMap(doc.Content[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	var order []entry
+	for k := range raw {
+		order = append(order, entry{name: k})
+	}
+	p := &parser{pipeline: &Pipeline{}}
+	resolved := p.resolveReferences(raw, order)
+	if len(p.pipeline.Problems) != 0 {
+		t.Fatalf("problems: %+v", p.pipeline.Problems)
+	}
+	for k := range resolved {
+		if strings.HasPrefix(k, ".") {
+			delete(resolved, k)
+		}
+	}
+	return resolved
+}
+
+func TestResolvedReferencesMatchTheExpandedConfiguration(t *testing.T) {
+	got := resolvedRaw(t, "references.gitlab-ci.yml")
+	want := resolvedRaw(t, "references-expanded.gitlab-ci.yml")
+	// GitLab flattens nested lists in script and rules; compare flattened.
+	if !reflect.DeepEqual(flatten(got), flatten(want)) {
+		t.Errorf("resolved:\n got  %v\n want %v", got, want)
+	}
+}
+
+func flatten(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := map[string]any{}
+		for k, item := range x {
+			out[k] = flatten(item)
+		}
+		return out
+	case []any:
+		var out []any
+		for _, item := range x {
+			if l, ok := flatten(item).([]any); ok {
+				out = append(out, l...)
+			} else {
+				out = append(out, flatten(item))
+			}
+		}
+		return out
+	default:
+		return v
 	}
 }
