@@ -1,0 +1,23 @@
+# Triggers every rule pipewise has, and an unresolved reference.
+default:
+  image: node:latest
+  artifacts:
+    paths: [out/]
+
+# No rules: runs on the default branch and the tag (redundant-job, no-rules).
+lint:
+  script: [npm run lint]
+
+# Merge requests only, not interruptible; tag without digest; no expire_in.
+unit:
+  image: golang:1.26
+  script: [go test ./...]
+  artifacts:
+    paths: [coverage.out]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+audit:
+  script: [npm audit]
+  rules:
+    - !reference [.missing]

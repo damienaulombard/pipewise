@@ -1,0 +1,85 @@
+.gitlab-ci.yml:2: info artifacts-no-expiry
+  The default artifacts have no expire_in; jobs "lint" and "audit" use them.
+  why: Artifacts without expire_in are kept as long as the instance default
+       allows: 30 days on GitLab.com, possibly forever on a self-managed
+       instance. Most job artifacts are only needed by the next stages of the
+       same pipeline.
+  fix:
+    default:
+      artifacts:
+        expire_in: 1 week
+
+.gitlab-ci.yml:2: warning floating-image
+  The default image "node:latest" uses the latest tag; jobs "lint" and "audit"
+  use it.
+  why: A floating image changes under the pipeline without any commit: the same
+       commit can pass today and fail tomorrow, and nothing can be rebuilt as it
+       was. `docker buildx imagetools inspect node:<version>` prints the digest.
+  fix:
+    default:
+      image: node:<version>@sha256:<digest>
+
+.gitlab-ci.yml:8: warning no-rules
+  Job "lint" has no rules, only or except, so GitLab's defaults decide where it
+  runs.
+  why: By default a job runs on every branch and every tag. With workflow:
+       rules, or with the project setting that skips branch pipelines for merge
+       requests, it runs in every pipeline instead, merge requests included.
+       Either way it rarely runs only where it is needed.
+  fix:
+    lint:
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.gitlab-ci.yml:8: error redundant-job
+  Job "lint" runs 2 times for the same commit: on the default branch and on the
+  tag.
+  why: With merged results pipelines and no direct pushes to the default branch,
+       the merge request pipeline already tests the exact commit that lands on
+       the default branch, and a tag only names that commit. Running the job
+       again there cannot find anything new; it only costs runner time and
+       delays the release.
+  fix:
+    lint:
+      rules:
+        - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+.gitlab-ci.yml:12: info artifacts-no-expiry
+  Job "unit" keeps its artifacts with no expire_in.
+  why: Artifacts without expire_in are kept as long as the instance default
+       allows: 30 days on GitLab.com, possibly forever on a self-managed
+       instance. Most job artifacts are only needed by the next stages of the
+       same pipeline.
+  fix:
+    unit:
+      artifacts:
+        expire_in: 1 week
+
+.gitlab-ci.yml:12: info floating-image
+  Job "unit" runs in image "golang:1.26", which is pinned by tag but not by
+  digest.
+  why: A tag can be pushed again with other content. A digest pins the exact
+       image, so a rebuild uses the same bytes. `docker buildx imagetools
+       inspect golang:1.26` prints the digest.
+  fix:
+    unit:
+      image: golang:1.26@sha256:<digest>
+
+.gitlab-ci.yml:12: info missing-interruptible
+  Job "unit" runs on merge requests but does not set interruptible.
+  why: When a new commit is pushed to a merge request, GitLab can cancel the
+       pipeline of the previous commit, but a job that has started is cancelled
+       only if it is interruptible. This one keeps running for a commit nobody
+       will merge. Setting interruptible: true under default: covers every job
+       at once.
+  fix:
+    unit:
+      interruptible: true
+
+.gitlab-ci.yml:23: warning unresolved-reference
+  !reference [.missing] could not be found; what it stands for is treated as
+  unknown.
+  why: pipewise cannot tell what this part stands for, so the jobs that depend
+       on it are reported as "maybe".
+
+.gitlab-ci.yml: 8 findings: 1 error, 3 warnings, 4 info.

@@ -4,6 +4,7 @@ package rules
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/damienaulombard/pipewise/internal/config"
 	"github.com/damienaulombard/pipewise/internal/eval"
@@ -64,10 +65,16 @@ func All() []Rule {
 	return []Rule{redundantJob{}, noRules{}, missingInterruptible{}, floatingImage{}, artifactsNoExpiry{}}
 }
 
+// Outcome is what Analyze found: the findings, and every job's verdicts.
+type Outcome struct {
+	Findings []Finding
+	Jobs     []eval.JobResult
+}
+
 // Analyze parses a configuration, evaluates it and runs every rule. Problems
 // met while reading or evaluating it come back as findings too, under their
 // own ids. Findings are sorted by line, then rule id, then job.
-func Analyze(data []byte, opts eval.Options) []Finding {
+func Analyze(data []byte, opts eval.Options) *Outcome {
 	p := config.Parse(data)
 	res := eval.Evaluate(p, opts)
 	a := &Analysis{Pipeline: p, Result: res}
@@ -88,11 +95,15 @@ func Analyze(data []byte, opts eval.Options) []Finding {
 		}
 		return out[i].Job < out[j].Job
 	})
-	return out
+	return &Outcome{Findings: out, Jobs: res.Jobs}
 }
 
 func problemFinding(pb config.Problem) Finding {
-	f := Finding{Rule: pb.Kind, Severity: Warning, Job: pb.Job, Line: pb.Line, Message: pb.Message}
+	msg := pb.Message
+	if !strings.HasSuffix(msg, ".") {
+		msg += "."
+	}
+	f := Finding{Rule: pb.Kind, Severity: Warning, Job: pb.Job, Line: pb.Line, Message: msg}
 	switch pb.Kind {
 	case config.KindParseError:
 		f.Severity = Error
