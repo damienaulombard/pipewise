@@ -1,0 +1,6 @@
+Job "deploy" (.gitlab-ci.yml:15)
+
+merge request    skipped  rule 2 (.gitlab-ci.yml:19) matched: when: never
+default branch   runs     rule 1 (.gitlab-ci.yml:9, from .shared) matched: if:
+                          $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+tag              skipped  rule 2 (.gitlab-ci.yml:19) matched: when: never

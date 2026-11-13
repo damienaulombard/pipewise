@@ -59,12 +59,15 @@ func TestExplainOutput(t *testing.T) {
 			if r.code != exitOK || r.stderr != "" {
 				t.Fatalf("exit %d, stderr %q", r.code, r.stderr)
 			}
-			got := r.stdout
+			got, wanted := r.stdout, want[tt.format]
 			if tt.stdin != "" {
-				got = strings.Replace(got, "(<stdin>:", "(.gitlab-ci.yml:", 1)
+				// The file is named <stdin>, a shorter name that moves where
+				// lines wrap: compare the words.
+				got = strings.Join(strings.Fields(strings.ReplaceAll(got, "<stdin>:", ".gitlab-ci.yml:")), " ")
+				wanted = strings.Join(strings.Fields(wanted), " ")
 			}
-			if got != want[tt.format] {
-				t.Errorf("output differs:\n--- got\n%s\n--- want\n%s", got, want[tt.format])
+			if got != wanted {
+				t.Errorf("output differs:\n--- got\n%s\n--- want\n%s", got, wanted)
 			}
 		})
 	}

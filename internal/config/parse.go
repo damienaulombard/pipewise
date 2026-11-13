@@ -37,6 +37,25 @@ func Parse(data []byte) *Pipeline {
 
 type parser struct {
 	pipeline *Pipeline
+	// tops are the top-level keys written in the file, in file order: the
+	// key holding a line is the last one starting at or before it.
+	tops []entry
+}
+
+// from returns the top-level key holding line, or "" when it is owner, the
+// job or keyword the line is used by.
+func (p *parser) from(line int, owner string) string {
+	name := ""
+	for _, e := range p.tops {
+		if e.line > line {
+			break
+		}
+		name = e.name
+	}
+	if name == owner {
+		return ""
+	}
+	return name
 }
 
 func (p *parser) problem(kind, job string, line int, format string, args ...any) {
@@ -100,6 +119,8 @@ func (p *parser) parse(data []byte) {
 		p.problem(KindParseError, "", 0, "%v", err)
 		return
 	}
+	delete(raw, lineKey)
+	delete(raw, keyLinesKey)
 
 	// Written keys in file order, then the ones a top-level `<<` brought in,
 	// located at that `<<` line: GitLab runs merged jobs like written ones.
@@ -115,6 +136,7 @@ func (p *parser) parse(data []byte) {
 		entries = append(entries, entry{name: key.Value, line: key.Line})
 		seen[key.Value] = true
 	}
+	p.tops = append([]entry{}, entries...)
 	var merged []string
 	for name := range raw {
 		if !seen[name] {
@@ -184,7 +206,7 @@ func (p *parser) parseWorkflow(v any, line int) {
 	}
 	w := &Workflow{}
 	if rules, ok := m["rules"]; ok {
-		w.Rules = p.toRules(rules, "", line)
+		w.Rules = p.toRules(rules, "", "workflow", line)
 	}
 	p.pipeline.Workflow = w
 }
@@ -225,10 +247,10 @@ func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Jo
 	}
 	if v, ok := m["rules"]; ok {
 		j.HasRules = true
-		j.Rules = p.toRules(v, e.name, e.line)
+		j.Rules = p.toRules(v, e.name, e.name, e.line)
 	}
-	j.Only = p.toFilter(m["only"], "only", e)
-	j.Except = p.toFilter(m["except"], "except", e)
+	j.Only = p.toFilter(m, "only", e)
+	j.Except = p.toFilter(m, "except", e)
 	j.Image = p.toImage(m["image"], e)
 	if j.Image != nil {
 		j.Image.Inherited = inherited["image"]
@@ -245,12 +267,14 @@ func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Jo
 	return j
 }
 
-func (p *parser) toRules(v any, job string, line int) []Rule {
+// toRules reads a rules: list. job names the job in problems, empty for
+// workflow; owner is the top-level key using the rules, for their Pos.
+func (p *parser) toRules(v any, job, owner string, line int) []Rule {
 	list, ok := v.([]any)
 	if !ok {
 		// A reference still here could not be resolved, and was reported.
 		if ref, isRef := v.(*reference); isRef {
-			return []Rule{{Reference: ref.String()}}
+			return []Rule{{Reference: ref.String(), Pos: p.pos(ref.line, owner)}}
 		}
 		p.problem(KindParseError, job, line, "rules: must be a list")
 		return nil
@@ -259,12 +283,14 @@ func (p *parser) toRules(v any, job string, line int) []Rule {
 	for _, item := range list {
 		switch it := item.(type) {
 		case map[string]any:
-			out = append(out, toRule(it))
+			r := toRule(it)
+			r.Pos = p.pos(mapLine(it), owner)
+			out = append(out, r)
 		case *reference:
-			out = append(out, Rule{Reference: it.String()})
+			out = append(out, Rule{Reference: it.String(), Pos: p.pos(it.line, owner)})
 		case []any:
 			// GitLab flattens nested lists in rules; they come from references.
-			out = append(out, p.toRules(it, job, line)...)
+			out = append(out, p.toRules(it, job, owner, line)...)
 		default:
 			p.problem(KindParseError, job, line, "each rule must be a mapping")
 		}
@@ -291,17 +317,24 @@ func toRule(m map[string]any) Rule {
 	return r
 }
 
-func (p *parser) toFilter(v any, keyword string, e entry) *Filter {
-	switch f := v.(type) {
+// pos is the Position of line for owner.
+func (p *parser) pos(line int, owner string) Position {
+	return Position{Line: line, From: p.from(line, owner)}
+}
+
+// toFilter reads the only or except keyword of job mapping m.
+func (p *parser) toFilter(m map[string]any, keyword string, e entry) *Filter {
+	pos := p.pos(keyLine(m, keyword), e.name)
+	switch f := m[keyword].(type) {
 	case nil:
 		return nil
 	case string:
-		return &Filter{Refs: []string{f}}
+		return &Filter{Pos: pos, Refs: []string{f}}
 	case []any:
-		return &Filter{Refs: stringList(f)}
+		return &Filter{Pos: pos, Refs: stringList(f)}
 	case map[string]any:
 		_, changes := f["changes"]
-		return &Filter{Refs: stringList(f["refs"]), Variables: stringList(f["variables"]), Changes: changes}
+		return &Filter{Pos: pos, Refs: stringList(f["refs"]), Variables: stringList(f["variables"]), Changes: changes}
 	default:
 		p.problem(KindParseError, e.name, e.line, "%s: must be a list or a mapping", keyword)
 		return nil

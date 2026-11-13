@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "file": ".gitlab-ci.yml",
+  "job": "release",
+  "line": 24,
+  "events": [
+    {
+      "event": "merge_request",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": false,
+        "source": "only-except",
+        "index": 0,
+        "line": 27,
+        "from": "",
+        "except_line": 22,
+        "except_from": ".never-main",
+        "clause": "only: refs [tags]; except: refs [main]",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "default_branch",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": false,
+        "source": "only-except",
+        "index": 0,
+        "line": 27,
+        "from": "",
+        "except_line": 22,
+        "except_from": ".never-main",
+        "clause": "only: refs [tags]; except: refs [main]",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "tag",
+      "verdict": "maybe",
+      "decided_by": {
+        "workflow": false,
+        "source": "only-except",
+        "index": 0,
+        "line": 27,
+        "from": "",
+        "except_line": 22,
+        "except_from": ".never-main",
+        "clause": "only: refs [tags]; except: refs [main]",
+        "certain": false,
+        "unknowns": [
+          "the tag's name"
+        ]
+      }
+    }
+  ]
+}

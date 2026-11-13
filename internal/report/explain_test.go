@@ -38,6 +38,10 @@ func TestExplainGolden(t *testing.T) {
 		{"explain.gitlab-ci.yml", "lint", "explain-lint"},
 		// workflow: rules decide on two events; no job rule matches on the third.
 		{"workflow.gitlab-ci.yml", "build", "workflow-build"},
+		// Rules written in a template, reached through extends and !reference.
+		{"inherited.gitlab-ci.yml", "unit", "inherited-unit"},
+		{"inherited.gitlab-ci.yml", "deploy", "inherited-deploy"},
+		{"inherited.gitlab-ci.yml", "release", "inherited-release"},
 	} {
 		t.Run(tt.golden, func(t *testing.T) {
 			jr := explainedIn(t, tt.fixture, tt.job)
@@ -87,10 +91,26 @@ func TestExplainPhrases(t *testing.T) {
 			"no rules or only: GitLab's default only: [branches, tags] may apply (depends on skip_branch_pipelines_for_mrs)"},
 		{"on failure", eval.Maybe, eval.Reason{Source: eval.SourceRule, Index: 1, Clause: "when: on_failure", Sure: true, Unknowns: []string{"earlier failures"}},
 			"rule 1 matched: when: on_failure (depends on earlier failures)"},
+		{"rule written under the job", eval.Runs, eval.Reason{Source: eval.SourceRule, Index: 2, Line: 8, Clause: "if: $X", Sure: true},
+			"rule 2 (ci.yml:8) matched: if: $X"},
+		{"inherited rule", eval.Maybe, eval.Reason{Source: eval.SourceRule, Index: 2, Line: 8, From: ".tpl", Clause: "if: $X", Unknowns: []string{"$X"}},
+			"rule 2 (ci.yml:8, from .tpl) may match: if: $X (depends on $X)"},
+		{"workflow entry with its line", eval.Skipped, eval.Reason{Workflow: true, Source: eval.SourceRule, Index: 1, Line: 3, Clause: "when: never", Sure: true},
+			"workflow: rules entry 1 (ci.yml:3) matched: when: never"},
+		{"inherited only", eval.Skipped, eval.Reason{Source: eval.SourceOnlyExcept, Line: 14, From: ".base", Clause: "only: refs [tags]", Sure: true},
+			"only/except (ci.yml:14, from .base): only: refs [tags]"},
+		{"only next to an inherited except", eval.Skipped, eval.Reason{Source: eval.SourceOnlyExcept, Line: 27, ExceptLine: 20, ExceptFrom: ".never-main",
+			Clause: "only: refs [branches]; except: refs [main]", Sure: true},
+			"only/except (ci.yml:27): only: refs [branches]; except (ci.yml:20, from .never-main): refs [main]"},
+		{"default only next to an except", eval.Runs, eval.Reason{Source: eval.SourceDefault, ExceptLine: 30,
+			Clause: "GitLab's default only: [branches, tags]; except: refs [tags]", Sure: true},
+			"no rules or only: GitLab's default only: [branches, tags]; except (ci.yml:30): refs [tags]"},
+		{"only/except with its line, may match", eval.Maybe, eval.Reason{Source: eval.SourceOnlyExcept, Line: 14, Clause: "only: refs [main]", Unknowns: []string{"$A"}},
+			"only/except (ci.yml:14) may match: only: refs [main] (depends on $A)"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := phrase(tt.verdict, tt.why); got != tt.want {
+			if got := phrase("ci.yml", tt.verdict, tt.why); got != tt.want {
 				t.Errorf("got  %q\nwant %q", got, tt.want)
 			}
 		})
@@ -145,12 +165,16 @@ func TestExplainJSONContract(t *testing.T) {
 			Event     string `json:"event"`
 			Verdict   string `json:"verdict"`
 			DecidedBy struct {
-				Workflow bool     `json:"workflow"`
-				Source   string   `json:"source"`
-				Index    int      `json:"index"`
-				Clause   string   `json:"clause"`
-				Certain  bool     `json:"certain"`
-				Unknowns []string `json:"unknowns"`
+				Workflow   bool     `json:"workflow"`
+				Source     string   `json:"source"`
+				Index      int      `json:"index"`
+				Line       int      `json:"line"`
+				From       string   `json:"from"`
+				ExceptLine int      `json:"except_line"`
+				ExceptFrom string   `json:"except_from"`
+				Clause     string   `json:"clause"`
+				Certain    bool     `json:"certain"`
+				Unknowns   []string `json:"unknowns"`
 			} `json:"decided_by"`
 		} `json:"events"`
 	}
@@ -161,6 +185,10 @@ func TestExplainJSONContract(t *testing.T) {
 	}
 	if r.Schema != 1 || r.File != "ci.yml" || r.Job != "test" || r.Line != 9 || len(r.Events) != 3 {
 		t.Fatalf("header = %+v", r)
+	}
+	// Rule 1 of job test is written on line 13 of the fixture.
+	if by := r.Events[0].DecidedBy; by.Line != 13 || by.From != "" {
+		t.Errorf("merge request decided at line %d from %q, want 13 from the job", by.Line, by.From)
 	}
 	var events []string
 	for _, e := range r.Events {

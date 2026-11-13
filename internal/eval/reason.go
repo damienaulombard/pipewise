@@ -43,6 +43,16 @@ type Reason struct {
 	Source   Source
 	// Index is the 1-based position of the rules: entry, for SourceRule.
 	Index int
+	// Line is where the deciding clause is written, 0 for GitLab's default
+	// only or when no rule matched. From is the top-level key holding it
+	// when that is not the job (or workflow) itself: a template reached
+	// through extends, an anchor or !reference.
+	Line int
+	From string
+	// ExceptLine and ExceptFrom are where except is written, for the only
+	// and except sources and GitLab's default only, when the job has one.
+	ExceptLine int
+	ExceptFrom string
 	// Clause is the deciding part of the configuration as written, such as
 	// `if: $CI_COMMIT_TAG, when: manual`.
 	Clause string

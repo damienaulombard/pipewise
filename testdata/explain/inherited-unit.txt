@@ -1,0 +1,7 @@
+Job "unit" (.gitlab-ci.yml:11)
+
+merge request    runs     rule 1 (.gitlab-ci.yml:3, from .tests) matched: if:
+                          $CI_PIPELINE_SOURCE == "merge_request_event"
+default branch   skipped  no rule matched
+tag              skipped  rule 2 (.gitlab-ci.yml:4, from .tests) matched: if:
+                          $CI_COMMIT_TAG, when: never
