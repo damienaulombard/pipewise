@@ -85,6 +85,34 @@ pipewise only reports what it can prove from the configuration. What depends
 on things it cannot see (changed files, project variables, the name of a tag)
 is "maybe", and never counts towards `redundant-job`.
 
+## Why these rules
+
+CI observability tools measure durations, trends and flaky tests. None of
+them reads the configuration to see that a job runs three times for one
+commit, and proposes the fix. The rules follow from a few principles:
+
+- **One stage validates.** With merged results pipelines and no direct pushes
+  to the default branch, the merge request pipeline tests exactly the commit
+  that lands on the default branch. Testing it again there, or on the tag,
+  cannot reveal anything new.
+- **A tag is a name, not new code.** The tag pipeline publishes and deploys;
+  it does not validate again.
+- **Build once, deploy many.** Building more than once is a known delivery
+  anti-pattern. Rebuilding on the tag is acceptable only when the build is
+  strictly reproducible (lockfiles, base images pinned by digest) and followed
+  by a smoke test.
+- **A smoke test checks the packaging, not the logic:** start the published
+  image, check its health and version, send a request or two.
+- **Each pipeline has one role:** the merge request validates, the default
+  branch publishes (or does nothing), the tag names and deploys.
+
+Further reading: GitLab's
+[pipeline efficiency](https://docs.gitlab.com/ci/pipelines/pipeline_efficiency/)
+guide, [Continuous Delivery](https://continuousdelivery.com) (Humble and
+Farley), the anti-patterns of the AWS Well-Architected DevOps Guidance,
+*Software Engineering at Google* (chapter 23), and the DORA reports on lead
+time for changes.
+
 ## Roadmap
 
 No dates: each step ships when it is ready. The issues of each step are on the
@@ -106,6 +134,9 @@ Ideas and use cases are welcome in the
 ## Develop
 
 Requires Go 1.26+ and [golangci-lint](https://golangci-lint.run) v2.
+
+How the code is organised and the conventions to follow are in
+[AGENTS.md](AGENTS.md).
 
 ```sh
 make build   # bin/pipewise
