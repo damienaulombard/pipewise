@@ -85,6 +85,24 @@ pipewise only reports what it can prove from the configuration. What depends
 on things it cannot see (changed files, project variables, the name of a tag)
 is "maybe", and never counts towards `redundant-job`.
 
+## Roadmap
+
+No dates: each step ships when it is ready. The issues of each step are on the
+[milestones page](https://github.com/damienaulombard/pipewise/milestones).
+
+- **v0.2 — explain**: `pipewise explain <job>` shows which rule decides
+  whether a job runs, for each event.
+- **v0.3 — autofix**: `--fix` prints a patch for the findings it can fix
+  safely, starting with `missing-interruptible` and `artifacts-no-expiry`,
+  then `redundant-job` once the project settings are checked.
+- **v0.4 — more rules**: `e2e-everywhere`, `stages-without-needs`,
+  `version-baked-at-build`, `no-cache`.
+- **v1.0 — GitHub Actions**: the same analysis for GitHub Actions workflows,
+  and a frozen JSON report and rule ids.
+
+Ideas and use cases are welcome in the
+[issues](https://github.com/damienaulombard/pipewise/issues).
+
 ## Develop
 
 Requires Go 1.26+ and [golangci-lint](https://golangci-lint.run) v2.
