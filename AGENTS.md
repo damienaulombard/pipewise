@@ -97,9 +97,10 @@ Releases come from the commits, through
 - If that publish job fails, the release stays a draft and nothing is public.
   *Re-run failed jobs* from the Actions tab builds the same commit again: it
   is enough for a transient failure. Not *Re-run all jobs*: release-please
-  would then see the release as done and skip the publish job. If the code at that commit is at fault, delete the
-  draft release, fix it on `main` through a pull request, and release the fix
-  as the next version from the next release pull request.
+  would then see the release as done and skip the publish job. If the code at
+  that commit is at fault, delete the draft release, fix it on `main` through
+  a pull request, and release the fix as the next version from the next
+  release pull request.
 - To call out a change to the public interface, edit the description of the
   release pull request (it becomes the release notes) and `CHANGELOG.md` in
   it, just before merging: release-please rewrites that pull request on every

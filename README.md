@@ -156,8 +156,8 @@ Ideas and use cases are welcome in the
 
 Requires Go 1.26+ and [golangci-lint](https://golangci-lint.run) v2.
 
-How the code is organised and the conventions to follow are in
-[AGENTS.md](AGENTS.md).
+To propose a change, start with [CONTRIBUTING.md](CONTRIBUTING.md). How the
+code is organised and the conventions to follow are in [AGENTS.md](AGENTS.md).
 
 ```sh
 make build   # bin/pipewise
