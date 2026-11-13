@@ -136,6 +136,15 @@ func TestReasons(t *testing.T) {
 			{Source: SourceDefault, Clause: "GitLab's default only: [branches, tags]; except: refs [tags]", Sure: true, Unknowns: []string{"earlier failures"}},
 			{Source: SourceDefault, Clause: "GitLab's default only: [branches, tags]; except: refs [tags]", Sure: true},
 		}},
+		{"default only with except, project setting unknown", job(`  except:
+    changes: [docs/**]
+`), Options{SkipBranchPipelinesForMRs: Unknown}, r3{
+			{Source: SourceDefault, Clause: "GitLab's default only: [branches, tags]; except: changes",
+				Unknowns: []string{"changed files", "skip_branch_pipelines_for_mrs"}},
+			{Source: SourceDefault, Clause: "GitLab's default only: [branches, tags]; except: changes",
+				Unknowns: []string{"changed files"}},
+			{Source: SourceDefault, Clause: "GitLab's default only: [branches, tags]; except: changes", Sure: true},
+		}},
 		{"an if: GitLab rejects", job(`  rules:
     - if: $A ==
 `), Options{}, r3{
