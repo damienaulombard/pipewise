@@ -124,14 +124,8 @@ consomme pipewise s'appuie dessus. Ils ne changent pas sans version majeure.
 - Aucune attribution d'outil dans les commits, PR et issues : pas de `Co-Authored-By` ni de mention
   « Generated with … ».
 
-## 6. Roadmap après v0 (pour mémoire, ne pas anticiper dans le code)
+## 6. Roadmap
 
-- v0.1 : `pipewise explain <job>` — montre pour chaque événement pourquoi le job tourne ou non
-  (la rule qui a matché). Très utile pour la confiance dans l'évaluateur.
-- v0.2 : génération de patch (`--fix` → diff unifié) pour `missing-interruptible` et
-  `artifacts-no-expiry` (sans risque), puis `redundant-job` avec préconditions vérifiées
-  via l'API (merged results activé, push direct interdit sur la branche par défaut).
-- v0.3 : règles supplémentaires : `e2e-everywhere`, `stages-without-needs`,
-  `version-baked-at-build` (usage de `$CI_COMMIT_TAG` dans un `build`), `no-cache`.
-- v1 : GitHub Actions (résolution des `uses:` et reusable workflows, évaluateur d'expressions
-  `${{ }}`).
+Elle vit dans les milestones GitHub (https://github.com/damienaulombard/pipewise/milestones),
+une issue par élément, résumée dans la section « Roadmap » du README. Ne pas anticiper dans
+le code ce qui n'est pas dans l'issue en cours.
