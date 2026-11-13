@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "file": ".gitlab-ci.yml",
+  "job": "lint",
+  "line": 26,
+  "events": [
+    {
+      "event": "merge_request",
+      "verdict": "runs",
+      "decided_by": {
+        "workflow": false,
+        "source": "default",
+        "index": 0,
+        "clause": "GitLab's default only is removed by workflow: rules",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "default_branch",
+      "verdict": "runs",
+      "decided_by": {
+        "workflow": false,
+        "source": "default",
+        "index": 0,
+        "clause": "GitLab's default only is removed by workflow: rules",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "tag",
+      "verdict": "runs",
+      "decided_by": {
+        "workflow": false,
+        "source": "default",
+        "index": 0,
+        "clause": "GitLab's default only is removed by workflow: rules",
+        "certain": true,
+        "unknowns": []
+      }
+    }
+  ]
+}

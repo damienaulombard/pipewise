@@ -85,7 +85,7 @@ func newRootCmd(stdin io.Reader, stdout, stderr io.Writer) *cobra.Command {
 	root.SetIn(stdin)
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.AddCommand(newVersionCmd(), newLintCmd(), newFetchCmd())
+	root.AddCommand(newVersionCmd(), newLintCmd(), newExplainCmd(), newFetchCmd())
 	return root
 }
 

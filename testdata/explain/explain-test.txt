@@ -1,0 +1,7 @@
+Job "test" (.gitlab-ci.yml:9)
+
+merge request    runs     rule 1 matched: if: $CI_PIPELINE_SOURCE ==
+                          "merge_request_event"
+default branch   maybe    rule 2 may match: if: $CI_COMMIT_BRANCH ==
+                          $CI_DEFAULT_BRANCH, changes (depends on changed files)
+tag              skipped  rule 3 matched: if: $CI_COMMIT_TAG, when: never

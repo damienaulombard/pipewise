@@ -1,0 +1,31 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - when: always
+
+stages: [test, deploy]
+
+test:
+  stage: test
+  script: [make test]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes: [src/**/*]
+    - if: $CI_COMMIT_TAG
+      when: never
+
+deploy:
+  stage: deploy
+  script: [make deploy]
+  only:
+    refs: [tags]
+    variables: [$DEPLOY_ENABLED == "true"]
+
+lint:
+  stage: test
+  script: [make lint]
+
+.template:
+  script: [make]

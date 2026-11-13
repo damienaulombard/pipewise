@@ -32,7 +32,7 @@ reported, and the analysis goes on with the rest.
 ## Layout
 
 ```
-cmd/pipewise/       CLI (cobra): lint, fetch, version
+cmd/pipewise/       CLI (cobra): lint, explain, fetch, version
 internal/config/    YAML → typed model; extends, anchors, !reference
 internal/eval/      rules evaluator: events, if: expressions, verdicts
 internal/rules/     one rule per file; rule.go holds Rule, Finding, All() and Analyze
@@ -46,9 +46,10 @@ only with a reason stated in the pull request.
 
 ## Public interface
 
-The JSON report (`lint --format json`) and the rule ids are what other tools
-build on. Rule ids are stable and kebab-case. Neither changes without a major
-version; until v1.0, a change is called out in the release notes.
+The JSON reports (`lint --format json`, `explain --format json`) and the rule
+ids are what other tools build on. Rule ids are stable and kebab-case. None of
+them changes without a major version; until v1.0, a change is called out in
+the release notes.
 
 ## Adding a rule
 

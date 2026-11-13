@@ -66,22 +66,16 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	if !ok && o.failOn != "none" {
 		return fmt.Errorf("--fail-on must be error, warning, info or none, not %q", o.failOn)
 	}
-	skip, ok := settingValues[o.skipBranch]
-	if !ok {
-		return fmt.Errorf("--skip-branch-pipelines-for-mrs must be true, false or unknown, not %q", o.skipBranch)
-	}
-	if o.defaultBranch == "" {
-		return fmt.Errorf("--default-branch cannot be empty")
+	opts, err := projectOptions(o.defaultBranch, o.skipBranch)
+	if err != nil {
+		return err
 	}
 
 	data, name, err := readConfig(cmd.InOrStdin(), path)
 	if err != nil {
 		return err
 	}
-	outcome := rules.Analyze(data, eval.Options{
-		DefaultBranch:             o.defaultBranch,
-		SkipBranchPipelinesForMRs: skip,
-	})
+	outcome := rules.Analyze(data, opts)
 	if err := render(cmd.OutOrStdout(), name, outcome); err != nil {
 		return fmt.Errorf("write the report: %w", err)
 	}
@@ -99,6 +93,19 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 		return &findingsError{count: n}
 	}
 	return nil
+}
+
+// projectOptions checks the flags that describe the project around the
+// configuration.
+func projectOptions(defaultBranch, skipBranch string) (eval.Options, error) {
+	skip, ok := settingValues[skipBranch]
+	if !ok {
+		return eval.Options{}, fmt.Errorf("--skip-branch-pipelines-for-mrs must be true, false or unknown, not %q", skipBranch)
+	}
+	if defaultBranch == "" {
+		return eval.Options{}, fmt.Errorf("--default-branch cannot be empty")
+	}
+	return eval.Options{DefaultBranch: defaultBranch, SkipBranchPipelinesForMRs: skip}, nil
 }
 
 // readConfig reads path, or standard input for "-". It returns the name to
