@@ -114,6 +114,22 @@ func TestExplainTextEscapes(t *testing.T) {
 	}
 }
 
+// TestExplainJSONKeepsOperators keeps clauses readable in the JSON: no
+// HTML escaping of &, < and >.
+func TestExplainJSONKeepsOperators(t *testing.T) {
+	jr := explained(t, "test")
+	jr.Reasons[eval.MergeRequest].Clause = "if: $A && $B"
+	var b bytes.Buffer
+	if err := ExplainJSON(&b, "a<b>.yml", jr); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`"clause": "if: $A && $B"`, `"file": "a<b>.yml"`} {
+		if !bytes.Contains(b.Bytes(), []byte(want)) {
+			t.Errorf("the JSON does not hold %s:\n%s", want, b.String())
+		}
+	}
+}
+
 // TestExplainJSONContract pins the field names and shapes consumers rely on.
 func TestExplainJSONContract(t *testing.T) {
 	var buf bytes.Buffer

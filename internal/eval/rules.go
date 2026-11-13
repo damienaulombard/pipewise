@@ -142,15 +142,23 @@ func (e *evaluator) settle(mark int, t Truth) Truth {
 // take returns the notes taken since mark, without duplicates, and forgets
 // them.
 func (e *evaluator) take(mark int) []string {
+	out := merge(e.notes[mark:])
+	e.notes = e.notes[:mark]
+	return out
+}
+
+// merge returns the items of lists in order, without duplicates.
+func merge(lists ...[]string) []string {
 	var out []string
 	seen := map[string]bool{}
-	for _, n := range e.notes[mark:] {
-		if !seen[n] {
-			seen[n] = true
-			out = append(out, n)
+	for _, l := range lists {
+		for _, s := range l {
+			if !seen[s] {
+				seen[s] = true
+				out = append(out, s)
+			}
 		}
 	}
-	e.notes = e.notes[:mark]
 	return out
 }
 
@@ -336,13 +344,14 @@ func (e *evaluator) onlyExcept(j *config.Job, ctx *Context) (Verdict, Reason) {
 		return v, why
 	default:
 		k, why := e.included(defaultOnly, j, ctx)
-		removed, _ := e.included(nil, j, ctx)
+		removed, removedWhy := e.included(nil, j, ctx)
 		why.Source, why.Clause = SourceDefault, kept
 		if k == removed {
 			return k, why
 		}
+		// Either branch may apply: what either depends on counts.
 		why.Sure = false
-		why.Unknowns = append(why.Unknowns, "skip_branch_pipelines_for_mrs")
+		why.Unknowns = merge(why.Unknowns, removedWhy.Unknowns, []string{"skip_branch_pipelines_for_mrs"})
 		return Maybe, why
 	}
 }
