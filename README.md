@@ -141,8 +141,6 @@ time for changes.
 No dates: each step ships when it is ready. The issues of each step are on the
 [milestones page](https://github.com/damienaulombard/pipewise/milestones).
 
-- **v0.2 — explain**: `pipewise explain <job>` shows which rule decides
-  whether a job runs, for each event.
 - **v0.3 — autofix**: `--fix` prints a patch for the findings it can fix
   safely, starting with `missing-interruptible` and `artifacts-no-expiry`,
   then `redundant-job` once the project settings are checked.
