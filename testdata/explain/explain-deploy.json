@@ -11,6 +11,10 @@
         "workflow": false,
         "source": "only-except",
         "index": 0,
+        "line": 22,
+        "from": "",
+        "except_line": 0,
+        "except_from": "",
         "clause": "only: refs [tags], variables [$DEPLOY_ENABLED == \"true\"]",
         "certain": true,
         "unknowns": []
@@ -23,6 +27,10 @@
         "workflow": false,
         "source": "only-except",
         "index": 0,
+        "line": 22,
+        "from": "",
+        "except_line": 0,
+        "except_from": "",
         "clause": "only: refs [tags], variables [$DEPLOY_ENABLED == \"true\"]",
         "certain": true,
         "unknowns": []
@@ -35,6 +43,10 @@
         "workflow": false,
         "source": "only-except",
         "index": 0,
+        "line": 22,
+        "from": "",
+        "except_line": 0,
+        "except_from": "",
         "clause": "only: refs [tags], variables [$DEPLOY_ENABLED == \"true\"]",
         "certain": false,
         "unknowns": [

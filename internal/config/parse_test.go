@@ -21,8 +21,43 @@ func parseFixture(t *testing.T, name string) *Pipeline {
 	return Parse(data)
 }
 
+// withoutPos returns rules without their Pos, which TestParsePositions
+// checks: the other tests are about what the configuration means.
+func withoutPos(rules []Rule) []Rule {
+	if rules == nil {
+		return nil
+	}
+	out := make([]Rule, len(rules))
+	for i, r := range rules {
+		r.Pos = Position{}
+		out[i] = r
+	}
+	return out
+}
+
+func filterWithoutPos(f *Filter) *Filter {
+	if f == nil {
+		return nil
+	}
+	c := *f
+	c.Pos = Position{}
+	return &c
+}
+
+func jobWithoutPos(j *Job) *Job {
+	c := *j
+	c.Rules = withoutPos(j.Rules)
+	c.Only, c.Except = filterWithoutPos(j.Only), filterWithoutPos(j.Except)
+	return &c
+}
+
 func assertJobs(t *testing.T, got []*Job, want []*Job) {
 	t.Helper()
+	positionless := make([]*Job, len(got))
+	for i, j := range got {
+		positionless[i] = jobWithoutPos(j)
+	}
+	got = positionless
 	if len(got) != len(want) {
 		names := make([]string, len(got))
 		for i, j := range got {
@@ -48,7 +83,7 @@ func TestParseSimple(t *testing.T) {
 		{If: `$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH`},
 		{If: `$CI_COMMIT_TAG`},
 	}}
-	if !reflect.DeepEqual(p.Workflow, wantWorkflow) {
+	if p.Workflow == nil || !reflect.DeepEqual(withoutPos(p.Workflow.Rules), wantWorkflow.Rules) {
 		t.Errorf("workflow:\n got  %+v\n want %+v", p.Workflow, wantWorkflow)
 	}
 	assertJobs(t, p.Jobs, []*Job{
@@ -522,11 +557,12 @@ func TestParseReferences(t *testing.T) {
 	if len(got.Problems) != 0 || len(want.Problems) != 0 {
 		t.Fatalf("unexpected problems: %+v %+v", got.Problems, want.Problems)
 	}
-	// Same jobs as the configuration written out in full; only the lines of
-	// the job keys differ between the two files.
+	// Same jobs as the configuration written out in full; only lines differ
+	// between the two files: of the job keys, and of the rules.
 	for _, p := range []*Pipeline{got, want} {
-		for _, j := range p.Jobs {
-			j.Line = 0
+		for i, j := range p.Jobs {
+			p.Jobs[i] = jobWithoutPos(j)
+			p.Jobs[i].Line = 0
 		}
 	}
 	assertJobs(t, got.Jobs, want.Jobs)
@@ -580,6 +616,10 @@ func flatten(v any) any {
 	case map[string]any:
 		out := map[string]any{}
 		for k, item := range x {
+			// Where each key is written differs between the two files.
+			if isHidden(k) {
+				continue
+			}
 			out[k] = flatten(item)
 		}
 		return out
@@ -737,4 +777,41 @@ lint:
 		t.Errorf("problems:\n got  %+v\n want %+v", p.Problems, want)
 	}
 	assertJobs(t, p.Jobs, []*Job{{Name: "lint", Line: 6, Stage: "test"}})
+}
+
+// TestParsePositions records, for every rule and only/except, the line it is
+// written on and the top-level key holding it when that is not the job.
+func TestParsePositions(t *testing.T) {
+	p := parseFixture(t, "origins.gitlab-ci.yml")
+	got := map[string][]Position{}
+	for _, j := range p.Jobs {
+		for _, r := range j.Rules {
+			got[j.Name] = append(got[j.Name], r.Pos)
+		}
+		for _, f := range []*Filter{j.Only, j.Except} {
+			if f != nil {
+				got[j.Name] = append(got[j.Name], f.Pos)
+			}
+		}
+	}
+	for _, r := range p.Workflow.Rules {
+		got["workflow"] = append(got["workflow"], r.Pos)
+	}
+	want := map[string][]Position{
+		"own":        {{Line: 23}},
+		"one-level":  {{Line: 3, From: ".tests"}, {Line: 4, From: ".tests"}},
+		"two-levels": {{Line: 3, From: ".tests"}, {Line: 4, From: ".tests"}},
+		"alias":      {{Line: 11, From: ".rules"}},
+		"merge-key":  {{Line: 14, From: ".base"}, {Line: 40}},
+		"mixed":      {{Line: 18, From: ".shared"}, {Line: 46}, {Line: 47}},
+		"workflow":   {{Line: 51, From: ".wf"}, {Line: 56}},
+	}
+	for name, w := range want {
+		if !reflect.DeepEqual(got[name], w) {
+			t.Errorf("%s:\n got  %+v\n want %+v", name, got[name], w)
+		}
+	}
+	if len(got) != len(want) {
+		t.Errorf("positions for %d entries, want %d: %+v", len(got), len(want), got)
+	}
 }

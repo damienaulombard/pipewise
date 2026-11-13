@@ -49,8 +49,17 @@ type Job struct {
 	Extends []string
 }
 
+// Position is where a rule or filter is written: its line, and the
+// top-level key holding it when that is not the job (or workflow) that uses
+// it, as when it comes through extends, an anchor or !reference.
+type Position struct {
+	Line int
+	From string
+}
+
 // Rule is one entry of `rules:` or `workflow: rules:`.
 type Rule struct {
+	Pos Position
 	// If is the `if:` expression, empty when absent.
 	If   string
 	When string
@@ -69,6 +78,8 @@ type Rule struct {
 
 // Filter is the content of `only:` or `except:`.
 type Filter struct {
+	// Pos is where the only or except keyword is written.
+	Pos       Position
 	Refs      []string
 	Variables []string
 	// Changes records that a `changes:` clause is present.

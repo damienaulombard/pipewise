@@ -67,8 +67,34 @@ func toReference(n *yaml.Node) (any, error) {
 	return ref, nil
 }
 
+// lineKey and keyLinesKey are kept in every mapping read from the file:
+// the line of the mapping, and the line of each of its keys. Merged keys
+// keep the line they are written on. Both start with a NUL so that they
+// cannot be taken for keywords or job names; isHidden tells them apart.
+const (
+	lineKey     = "\x00line"
+	keyLinesKey = "\x00keys"
+)
+
+func isHidden(key string) bool { return strings.HasPrefix(key, "\x00") }
+
+// mapLine returns the line a mapping read by toMap starts on, or 0.
+func mapLine(m map[string]any) int {
+	l, _ := m[lineKey].(int)
+	return l
+}
+
+// keyLine returns the line key is written on in a mapping read by toMap,
+// or 0.
+func keyLine(m map[string]any, key string) int {
+	lines, _ := m[keyLinesKey].(map[string]any)
+	l, _ := lines[key].(int)
+	return l
+}
+
 func toMap(n *yaml.Node) (map[string]any, error) {
-	out := make(map[string]any, len(n.Content)/2)
+	out := make(map[string]any, len(n.Content)/2+2)
+	keyLines := map[string]any{}
 	var merged []map[string]any
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		key, val := n.Content[i], n.Content[i+1]
@@ -85,14 +111,29 @@ func toMap(n *yaml.Node) (map[string]any, error) {
 			return nil, err
 		}
 		out[key.Value] = v
+		keyLines[key.Value] = key.Line
 	}
 	for _, src := range merged {
 		for k, v := range src {
+			if isHidden(k) {
+				continue
+			}
 			if _, set := out[k]; !set {
 				out[k] = v
+				if l := keyLine(src, k); l > 0 {
+					keyLines[k] = l
+				}
 			}
 		}
 	}
+	// The mapping starts at its first key: an anchor on the line above
+	// (`tag: &rule` then `if: ...`) is not where it is written.
+	line := n.Line
+	if len(n.Content) > 0 {
+		line = n.Content[0].Line
+	}
+	out[lineKey] = line
+	out[keyLinesKey] = keyLines
 	return out, nil
 }
 

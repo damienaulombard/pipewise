@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "file": ".gitlab-ci.yml",
+  "job": "deploy",
+  "line": 15,
+  "events": [
+    {
+      "event": "merge_request",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": false,
+        "source": "rule",
+        "index": 2,
+        "line": 19,
+        "from": "",
+        "except_line": 0,
+        "except_from": "",
+        "clause": "when: never",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "default_branch",
+      "verdict": "runs",
+      "decided_by": {
+        "workflow": false,
+        "source": "rule",
+        "index": 1,
+        "line": 9,
+        "from": ".shared",
+        "except_line": 0,
+        "except_from": "",
+        "clause": "if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "tag",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": false,
+        "source": "rule",
+        "index": 2,
+        "line": 19,
+        "from": "",
+        "except_line": 0,
+        "except_from": "",
+        "clause": "when: never",
+        "certain": true,
+        "unknowns": []
+      }
+    }
+  ]
+}

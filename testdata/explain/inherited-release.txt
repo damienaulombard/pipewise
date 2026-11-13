@@ -1,0 +1,11 @@
+Job "release" (.gitlab-ci.yml:24)
+
+merge request    skipped  only/except (.gitlab-ci.yml:27): only: refs [tags];
+                          except (.gitlab-ci.yml:22, from .never-main): refs
+                          [main]
+default branch   skipped  only/except (.gitlab-ci.yml:27): only: refs [tags];
+                          except (.gitlab-ci.yml:22, from .never-main): refs
+                          [main]
+tag              maybe    only/except (.gitlab-ci.yml:27) may match: only: refs
+                          [tags]; except (.gitlab-ci.yml:22, from .never-main):
+                          refs [main] (depends on the tag's name)

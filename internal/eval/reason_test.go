@@ -158,6 +158,9 @@ func TestReasons(t *testing.T) {
 			res := evaluate(t, tt.yaml, tt.opts)
 			got := r3(res.Jobs[0].Reasons)
 			for _, ev := range Events {
+				// Where the clause is written is TestReasonPositions' concern.
+				got[ev].Line, got[ev].From = 0, ""
+				got[ev].ExceptLine, got[ev].ExceptFrom = 0, ""
 				if !reflect.DeepEqual(got[ev], tt.want[ev]) {
 					t.Errorf("%s:\n got %+v\nwant %+v", ev, got[ev], tt.want[ev])
 				}
@@ -172,6 +175,88 @@ func TestSourceString(t *testing.T) {
 	} {
 		if got := s.String(); got != want {
 			t.Errorf("Source(%d) = %q, want %q", s, got, want)
+		}
+	}
+}
+
+// TestReasonPositions carries where the deciding clause is written.
+func TestReasonPositions(t *testing.T) {
+	res := evaluate(t, `.tests:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never
+    - when: always
+job:
+  extends: .tests
+  script: [x]
+deploy:
+  script: [x]
+  only: [tags]
+lint:
+  script: [x]
+.tags-only:
+  only: [tags]
+.never-main:
+  except: [main]
+inherited-only:
+  extends: .tags-only
+  script: [x]
+both:
+  extends: .never-main
+  script: [x]
+  only: [branches]
+except-only:
+  script: [x]
+  except: [tags]
+`, Options{})
+	type at struct {
+		line       int
+		from       string
+		exceptLine int
+		exceptFrom string
+	}
+	want := map[string][3]at{
+		"job":            {{3, ".tests", 0, ""}, {}, {6, "", 0, ""}},
+		"deploy":         {{14, "", 0, ""}, {14, "", 0, ""}, {6, "", 0, ""}},
+		"lint":           {{}, {}, {6, "", 0, ""}},
+		"inherited-only": {{18, ".tags-only", 0, ""}, {18, ".tags-only", 0, ""}, {6, "", 0, ""}},
+		"both":           {{27, "", 20, ".never-main"}, {27, "", 20, ".never-main"}, {6, "", 0, ""}},
+		"except-only":    {{0, "", 30, ""}, {0, "", 30, ""}, {6, "", 0, ""}},
+	}
+	for _, jr := range res.Jobs {
+		var got [3]at
+		for _, ev := range Events {
+			why := jr.Reasons[ev]
+			got[ev] = at{why.Line, why.From, why.ExceptLine, why.ExceptFrom}
+		}
+		if got != want[jr.Job.Name] {
+			t.Errorf("%s: got %+v, want %+v", jr.Job.Name, got, want[jr.Job.Name])
+		}
+	}
+	if len(res.Jobs) != len(want) {
+		t.Errorf("%d jobs, want %d", len(res.Jobs), len(want))
+	}
+}
+
+// TestReasonExceptPosition covers except next to GitLab's default only,
+// without workflow: rules, whether the project setting is known or not.
+func TestReasonExceptPosition(t *testing.T) {
+	yaml := `.never-tags:
+  except: [tags]
+plain:
+  extends: .never-tags
+  script: [x]
+`
+	for _, setting := range []Truth{False, Unknown} {
+		res := evaluate(t, yaml, Options{SkipBranchPipelinesForMRs: setting})
+		for _, ev := range Events {
+			why := res.Jobs[0].Reasons[ev]
+			if why.Source != SourceDefault || why.Line != 0 || why.ExceptLine != 2 || why.ExceptFrom != ".never-tags" {
+				t.Errorf("setting %v, %s: %+v", setting, ev, why)
+			}
 		}
 	}
 }

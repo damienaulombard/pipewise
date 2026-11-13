@@ -2,5 +2,5 @@ Job "build" (.gitlab-ci.yml:7)
 
 merge request    skipped  no rule matched
 default branch   skipped  no workflow: rules entry matched, so no pipeline
-tag              skipped  workflow: rules entry 1 matched: if: $CI_COMMIT_TAG,
-                          when: never
+tag              skipped  workflow: rules entry 1 (.gitlab-ci.yml:3) matched:
+                          if: $CI_COMMIT_TAG, when: never

@@ -239,7 +239,8 @@ func (e *evaluator) rules(rules []config.Rule, i int, jobWhen, job string, line 
 	r := rules[i]
 	mark := len(e.notes)
 	matched := e.settle(mark, e.ruleMatches(r, job, line, ctx))
-	why := Reason{Source: SourceRule, Index: i + 1, Clause: ruleClause(r), Sure: matched != Unknown}
+	why := Reason{Source: SourceRule, Index: i + 1, Line: r.Pos.Line, From: r.Pos.From,
+		Clause: ruleClause(r), Sure: matched != Unknown}
 	why.Unknowns = e.take(mark)
 	switch matched {
 	case True:
@@ -316,6 +317,14 @@ func whenVerdict(when string) Verdict {
 	}
 }
 
+// exceptPos is where the job's except is written, or zero values.
+func exceptPos(j *config.Job) (int, string) {
+	if j.Except == nil {
+		return 0, ""
+	}
+	return j.Except.Pos.Line, j.Except.Pos.From
+}
+
 // defaultOnly is what a job without rules or only gets, unless
 // workflow: rules or the project setting removes it.
 var defaultOnly = &config.Filter{Refs: []string{"branches", "tags"}}
@@ -324,8 +333,11 @@ func (e *evaluator) onlyExcept(j *config.Job, ctx *Context) (Verdict, Reason) {
 	if j.Only != nil {
 		v, why := e.included(j.Only, j, ctx)
 		why.Source, why.Clause = SourceOnlyExcept, filterClause(j.Only, j.Except)
+		why.Line, why.From = j.Only.Pos.Line, j.Only.Pos.From
+		why.ExceptLine, why.ExceptFrom = exceptPos(j)
 		return v, why
 	}
+	exceptLine, exceptFrom := exceptPos(j)
 	kept := "GitLab's default only: [branches, tags]"
 	if j.Except != nil {
 		kept += "; " + filterClause(nil, j.Except)
@@ -334,6 +346,7 @@ func (e *evaluator) onlyExcept(j *config.Job, ctx *Context) (Verdict, Reason) {
 	case True:
 		v, why := e.included(nil, j, ctx)
 		why.Source, why.Clause = SourceDefault, "GitLab's default only is removed by "+e.removedBy
+		why.ExceptLine, why.ExceptFrom = exceptLine, exceptFrom
 		if j.Except != nil {
 			why.Clause += "; " + filterClause(nil, j.Except)
 		}
@@ -341,11 +354,13 @@ func (e *evaluator) onlyExcept(j *config.Job, ctx *Context) (Verdict, Reason) {
 	case False:
 		v, why := e.included(defaultOnly, j, ctx)
 		why.Source, why.Clause = SourceDefault, kept
+		why.ExceptLine, why.ExceptFrom = exceptLine, exceptFrom
 		return v, why
 	default:
 		k, why := e.included(defaultOnly, j, ctx)
 		removed, removedWhy := e.included(nil, j, ctx)
 		why.Source, why.Clause = SourceDefault, kept
+		why.ExceptLine, why.ExceptFrom = exceptLine, exceptFrom
 		if k == removed {
 			return k, why
 		}
