@@ -49,7 +49,7 @@ only with a reason stated in the pull request.
 The JSON reports (`lint --format json`, `explain --format json`) and the rule
 ids are what other tools build on. Rule ids are stable and kebab-case. None of
 them changes without a major version; until v1.0, a change is called out in
-the release notes.
+the changelog of the release (see Releasing).
 
 ## Adding a rule
 
@@ -80,6 +80,38 @@ make fmt
 make check   # tidy check, lint, tests, coverage of internal/eval
 ```
 
+## Releasing
+
+Releases come from the commits, through
+[release-please](https://github.com/googleapis/release-please-action)
+(`.github/workflows/release.yml`):
+
+- Every push to `main` updates one release pull request: the next version and
+  `CHANGELOG.md`, built from the commit titles. `feat` bumps the minor
+  version, `fix` the patch; before 1.0 a breaking change (`!`) bumps the
+  minor version too.
+- Merging the release pull request is the decision to release, usually when a
+  milestone is done. It creates a draft GitHub release; the same workflow then
+  builds the archives, smoke-tests the Linux binary, uploads them with
+  `SHA256SUMS` and publishes the release, which creates the tag.
+- If that publish job fails, the release stays a draft and nothing is public.
+  *Re-run failed jobs* from the Actions tab builds the same commit again: it
+  is enough for a transient failure. Not *Re-run all jobs*: release-please
+  would then see the release as done and skip the publish job. If the code at that commit is at fault, delete the
+  draft release, fix it on `main` through a pull request, and release the fix
+  as the next version from the next release pull request.
+- To call out a change to the public interface, edit the description of the
+  release pull request (it becomes the release notes) and `CHANGELOG.md` in
+  it, just before merging: release-please rewrites that pull request on every
+  push to `main`.
+- Do not push version tags by hand: the release workflow only builds what
+  release-please creates.
+- The repository setting *Settings → Actions → General → Allow GitHub Actions
+  to create and approve pull requests* must stay on: release-please opens its
+  pull request with the workflow token. Pull requests opened that way do not
+  start the CI; the release pull request only changes the changelog and the
+  version manifest.
+
 ## Conventions
 
 - Everything in English: code, comments, CLI messages, docs, issues, pull
@@ -89,5 +121,5 @@ make check   # tidy check, lint, tests, coverage of internal/eval
 - One pull request per issue, squash-merged.
 - No tool attribution in commits, pull requests or issues: no
   `Co-Authored-By` trailer, no "Generated with" line.
-- CI runs on pull requests only, and the release workflow builds and publishes
-  on a tag without testing again: the project follows its own rules.
+- CI runs on pull requests only, and the release workflow on `main` builds and
+  publishes without testing again: the project follows its own rules.

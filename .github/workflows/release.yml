@@ -1,34 +1,77 @@
 name: Release
 
-# A tag names a commit the pull request already tested: this workflow
-# builds, smoke-tests the binary and publishes. It does not test again.
+# The main pipeline publishes, it does not test again: the pull request
+# already tested the commit that lands on main.
+#
+# release-please keeps one release pull request up to date from the commits
+# on main. Merging it is the decision to release: it creates a draft GitHub
+# release, then the publish job builds, smoke-tests the binary, uploads the
+# archives and publishes the release, which creates the tag. The release is
+# never public without its archives. A release made with the workflow token
+# starts no other workflow, which is why the publish job lives here.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 
-permissions:
-  contents: write
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build and publish
+  release-please:
+    name: Release pull request
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      # release-please labels its pull request (autorelease: pending, tagged).
+      issues: write
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      sha: ${{ steps.release.outputs.sha }}
     steps:
+      # Pinned by commit: the only third-party action here with write access.
+      - id: release
+        uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: Build and publish
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+    steps:
+      # The tag does not exist until the draft is published: build the
+      # commit release-please released.
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          persist-credentials: false
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Build the archives
-        run: make dist VERSION="$GITHUB_REF_NAME"
+        run: make dist VERSION="$TAG"
       - name: Smoke test the Linux binary
         run: |
-          name="pipewise_${GITHUB_REF_NAME}_linux_amd64"
+          name="pipewise_${TAG}_linux_amd64"
           tar -xzf "dist/$name.tar.gz" -C "$RUNNER_TEMP"
-          test "$("$RUNNER_TEMP/$name/pipewise" version)" = "pipewise $GITHUB_REF_NAME"
+          test "$("$RUNNER_TEMP/$name/pipewise" version)" = "pipewise $TAG"
           "$RUNNER_TEMP/$name/pipewise" lint testdata/report/clean.gitlab-ci.yml
-      - name: Publish the release
+          "$RUNNER_TEMP/$name/pipewise" explain unit testdata/explain/inherited.gitlab-ci.yml
+      - name: Upload the archives and publish the release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.zip dist/SHA256SUMS \
-            --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
+          gh release upload "$TAG" dist/*.tar.gz dist/*.zip dist/SHA256SUMS --clobber
+          gh release edit "$TAG" --draft=false
