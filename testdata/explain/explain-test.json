@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "file": ".gitlab-ci.yml",
+  "job": "test",
+  "line": 9,
+  "events": [
+    {
+      "event": "merge_request",
+      "verdict": "runs",
+      "decided_by": {
+        "workflow": false,
+        "source": "rule",
+        "index": 1,
+        "clause": "if: $CI_PIPELINE_SOURCE == \"merge_request_event\"",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "default_branch",
+      "verdict": "maybe",
+      "decided_by": {
+        "workflow": false,
+        "source": "rule",
+        "index": 2,
+        "clause": "if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH, changes",
+        "certain": false,
+        "unknowns": [
+          "changed files"
+        ]
+      }
+    },
+    {
+      "event": "tag",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": false,
+        "source": "rule",
+        "index": 3,
+        "clause": "if: $CI_COMMIT_TAG, when: never",
+        "certain": true,
+        "unknowns": []
+      }
+    }
+  ]
+}

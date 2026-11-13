@@ -1,0 +1,8 @@
+Job "lint" (.gitlab-ci.yml:26)
+
+merge request    runs     no rules or only: GitLab's default only is removed by
+                          workflow: rules
+default branch   runs     no rules or only: GitLab's default only is removed by
+                          workflow: rules
+tag              runs     no rules or only: GitLab's default only is removed by
+                          workflow: rules

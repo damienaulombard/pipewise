@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "file": ".gitlab-ci.yml",
+  "job": "build",
+  "line": 7,
+  "events": [
+    {
+      "event": "merge_request",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": false,
+        "source": "no-rule",
+        "index": 0,
+        "clause": "",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "default_branch",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": true,
+        "source": "no-rule",
+        "index": 0,
+        "clause": "",
+        "certain": true,
+        "unknowns": []
+      }
+    },
+    {
+      "event": "tag",
+      "verdict": "skipped",
+      "decided_by": {
+        "workflow": true,
+        "source": "rule",
+        "index": 1,
+        "clause": "if: $CI_COMMIT_TAG, when: never",
+        "certain": true,
+        "unknowns": []
+      }
+    }
+  ]
+}

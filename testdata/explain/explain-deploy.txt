@@ -1,0 +1,9 @@
+Job "deploy" (.gitlab-ci.yml:19)
+
+merge request    skipped  only/except: only: refs [tags], variables
+                          [$DEPLOY_ENABLED == "true"]
+default branch   skipped  only/except: only: refs [tags], variables
+                          [$DEPLOY_ENABLED == "true"]
+tag              maybe    only/except may match: only: refs [tags], variables
+                          [$DEPLOY_ENABLED == "true"] (depends on
+                          $DEPLOY_ENABLED)

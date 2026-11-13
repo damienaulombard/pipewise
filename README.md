@@ -67,6 +67,27 @@ without one, GitLab answers 404, as if the project did not exist.
 Exit codes: `0` when no finding reaches `--fail-on`, `1` when one does, `2` on
 a usage or read error.
 
+To see why a job runs, or does not, on each event, ask for it by name:
+
+```sh
+pipewise explain test                  # reads .gitlab-ci.yml
+pipewise explain --format json test merged.yml
+```
+
+```
+Job "test" (.gitlab-ci.yml:9)
+
+merge request    runs     rule 1 matched: if: $CI_PIPELINE_SOURCE ==
+                          "merge_request_event"
+default branch   maybe    rule 2 may match: if: $CI_COMMIT_BRANCH ==
+                          $CI_DEFAULT_BRANCH, changes (depends on changed files)
+tag              skipped  rule 3 matched: if: $CI_COMMIT_TAG, when: never
+```
+
+`explain` takes the same `--format`, `--default-branch` and
+`--skip-branch-pipelines-for-mrs` flags as `lint`, and exits with `2` when the
+job does not exist.
+
 ## What it reports
 
 | Rule | Severity | When |
