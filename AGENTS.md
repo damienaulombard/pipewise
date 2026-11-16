@@ -91,16 +91,19 @@ Releases come from the commits, through
   version, `fix` the patch; before 1.0 a breaking change (`!`) bumps the
   minor version too.
 - Merging the release pull request is the decision to release, usually when a
-  milestone is done. It creates a draft GitHub release; the same workflow then
-  builds the archives, smoke-tests the Linux binary, uploads them with
-  `SHA256SUMS` and publishes the release, which creates the tag.
+  milestone is done. It creates a draft GitHub release and its tag; the same
+  workflow then builds the archives, smoke-tests the Linux binary, uploads
+  them with `SHA256SUMS` and publishes the release. The tag is created with
+  the draft (`force-tag-creation`): GitHub would otherwise create it only on
+  publishing, and release-please, looking for the previous release in the
+  same run, would rebuild a release pull request from the whole history.
 - If that publish job fails, the release stays a draft and nothing is public.
   *Re-run failed jobs* from the Actions tab builds the same commit again: it
   is enough for a transient failure. Not *Re-run all jobs*: release-please
   would then see the release as done and skip the publish job. If the code at
-  that commit is at fault, delete the draft release, fix it on `main` through
-  a pull request, and release the fix as the next version from the next
-  release pull request.
+  that commit is at fault, delete the draft release and its tag, fix it on
+  `main` through a pull request, and release the fix as the next version from
+  the next release pull request.
 - To call out a change to the public interface, edit the description of the
   release pull request (it becomes the release notes) and `CHANGELOG.md` in
   it, just before merging: release-please rewrites that pull request on every

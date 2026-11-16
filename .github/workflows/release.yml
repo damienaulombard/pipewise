@@ -5,10 +5,12 @@ name: Release
 #
 # release-please keeps one release pull request up to date from the commits
 # on main. Merging it is the decision to release: it creates a draft GitHub
-# release, then the publish job builds, smoke-tests the binary, uploads the
-# archives and publishes the release, which creates the tag. The release is
-# never public without its archives. A release made with the workflow token
-# starts no other workflow, which is why the publish job lives here.
+# release and its tag (force-tag-creation, so that the release pull request
+# built in the same run finds this release), then the publish job builds,
+# smoke-tests the binary, uploads the archives and publishes the release. The
+# release is never public without its archives. A release made with the
+# workflow token starts no other workflow, which is why the publish job lives
+# here.
 on:
   push:
     branches: [main]
@@ -50,8 +52,7 @@ jobs:
     env:
       TAG: ${{ needs.release-please.outputs.tag }}
     steps:
-      # The tag does not exist until the draft is published: build the
-      # commit release-please released.
+      # Build the commit release-please released, which its tag names.
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.sha }}
