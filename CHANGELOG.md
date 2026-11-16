@@ -3,6 +3,12 @@
 ## [0.2.0](https://github.com/damienaulombard/pipewise/compare/v0.1.0...v0.2.0) (2026-11-16)
 
 
+### Public interface
+
+* New JSON report: `pipewise explain --format json` (`schema`, `file`, `job`, `line`, and per event `event`, `verdict` and `decided_by`). Its field names are public interface, like those of `lint --format json`.
+* Added to `decided_by` during the milestone: `line` (where the deciding clause is written, `0` for GitLab's default `only` or when no rule matched) and `from` (the top-level key holding it when it is not the job itself: a template reached through `extends`, an anchor or `!reference`); `except_line` and `except_from`, the same for the job's `except`.
+
+
 ### Features
 
 * **cli:** add pipewise explain to show what decides each verdict ([#43](https://github.com/damienaulombard/pipewise/issues/43)) ([769f903](https://github.com/damienaulombard/pipewise/commit/769f903784a6d6cb0a030181de5878c2bf1ae1b1)), closes [#26](https://github.com/damienaulombard/pipewise/issues/26)
