@@ -1,0 +1,73 @@
+# .claude/workflow.yml — settings for the workflow plugin (own profile).
+version: 1
+profile: own
+
+language:
+  conversation: fr
+  code: en
+  commits: en
+  pr: en            # pull requests, issues and the review journal
+
+forge:
+  type: github
+
+tracker:
+  type: github
+  issue_required: true    # one pull request per issue
+
+git:
+  base: main
+  branch: "{type}/{issue}-{slug}"
+  worktrees: sibling
+  worktree_setup: ""
+
+commit:
+  convention: conventional  # with a scope: feat(eval): …
+  scope: package
+  issue_ref: footer         # "Closes #N" in the body; the squash merge adds (#PR) to the title
+  body: when-useful
+  coauthor: false           # public repository: no tool attribution anywhere
+  ask: true
+
+pr:
+  open: claude
+  draft: true
+
+merge:
+  mode: ask                 # scheduled sessions never merge; the maintainer does
+  method: squash
+
+interactive:
+  mode: ask
+
+# The linter is run with `go run` at the version pinned in .github/workflows/ci.yml,
+# so that any container gets the same one (a preinstalled older golangci-lint
+# refuses Go 1.26). Keep both versions in step.
+verify:
+  format: "go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 fmt {file}"
+  lint: "go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run"
+  typecheck: "make build"
+  test: "make test"
+  test_full: "make tidy-check test cover-eval"   # make check without lint, run just before
+
+architecture:
+  doc: AGENTS.md
+
+tests:
+  policy: always
+  prove_red: true
+
+security:
+  audit: ""
+
+docs:
+  dir: .claude/docs
+  committed: false
+  handoff: .claude/docs/HANDOFF.md
+
+autonomy:
+  label_proposed: agent:proposed
+  label_in_progress: agent:in-progress
+  label_needs_human: agent:needs-human
+  label_in_review: agent:in-review
+  label_journal: workflow:journal
