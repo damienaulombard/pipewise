@@ -31,7 +31,7 @@ commit:
 
 pr:
   open: claude
-  draft: true
+  draft: false              # Claude cannot mark a draft ready later (GraphQL only)
 
 merge:
   mode: ask                 # scheduled sessions never merge; the maintainer does
