@@ -58,7 +58,7 @@ tests:
   prove_red: true
 
 security:
-  audit: ""
+  audit: "go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./..."   # exit 3 = vulnerabilities found
 
 docs:
   dir: .claude/docs
