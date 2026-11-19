@@ -100,6 +100,7 @@ job does not exist.
 | `floating-image` | warning | an image uses `latest` or no tag |
 | | info | an image is pinned by tag but not by digest |
 | `artifacts-no-expiry` | info | `artifacts:` without `expire_in` |
+| `no-cache` | info | a job installs dependencies (npm, pnpm, yarn, pip, composer, go, bundler, maven, gradle) without a `cache:` |
 
 Rule ids are stable: they are part of pipewise's interface, like the JSON
 report.
@@ -145,7 +146,7 @@ No dates: each step ships when it is ready. The issues of each step are on the
   safely, starting with `missing-interruptible` and `artifacts-no-expiry`,
   then `redundant-job` once the project settings are checked.
 - **v0.4 — more rules**: `e2e-everywhere`, `stages-without-needs`,
-  `version-baked-at-build`, `no-cache`.
+  `version-baked-at-build`.
 - **v1.0 — GitHub Actions**: the same analysis for GitHub Actions workflows,
   and a frozen JSON report and rule ids.
 

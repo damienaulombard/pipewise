@@ -58,6 +58,17 @@ func assertJobs(t *testing.T, got []*Job, want []*Job) {
 		positionless[i] = jobWithoutPos(j)
 	}
 	got = positionless
+	// Script and Cache are checked by TestParseScriptAndCache.
+	for _, j := range got {
+		j.Script, j.Cache = nil, false
+	}
+	stripped := make([]*Job, len(want))
+	for i, j := range want {
+		c := *j
+		c.Script, c.Cache = nil, false
+		stripped[i] = &c
+	}
+	want = stripped
 	if len(got) != len(want) {
 		names := make([]string, len(got))
 		for i, j := range got {
@@ -523,6 +534,71 @@ func TestParseEdgeCases(t *testing.T) {
 				t.Fatalf("unexpected problems: %+v", p.Problems)
 			}
 			assertJobs(t, p.Jobs, tt.want)
+		})
+	}
+}
+
+func TestParseScriptAndCache(t *testing.T) {
+	tests := []struct {
+		name   string
+		src    string
+		script []string
+		cache  bool
+	}{
+		{name: "neither", src: "build:\n  stage: build\n"},
+		{
+			name:   "script as a string",
+			src:    "build:\n  script: npm ci\n",
+			script: []string{"npm ci"},
+		},
+		{
+			name:   "before_script then script, nested lists flattened",
+			src:    "build:\n  before_script: [npm ci]\n  script:\n    - [npm test, npm run lint]\n    - make\n",
+			script: []string{"npm ci", "npm test", "npm run lint", "make"},
+		},
+		{
+			name:   "before_script and cache inherited from default:",
+			src:    "default:\n  before_script: [npm ci]\n  cache: {paths: [.npm/]}\nbuild:\n  script: [npm test]\n",
+			script: []string{"npm ci", "npm test"},
+			cache:  true,
+		},
+		{
+			name:   "legacy top-level before_script and cache",
+			src:    "before_script: [pip install -r requirements.txt]\ncache: {paths: [.cache/]}\nbuild:\n  script: [pytest]\n",
+			script: []string{"pip install -r requirements.txt", "pytest"},
+			cache:  true,
+		},
+		{
+			name:   "cache through extends",
+			src:    ".cached:\n  cache: {paths: [.npm/]}\nbuild:\n  extends: .cached\n  script: [npm ci]\n",
+			script: []string{"npm ci"},
+			cache:  true,
+		},
+		{
+			name:   "an empty cache is still a cache",
+			src:    "build:\n  cache: []\n  script: [npm ci]\n",
+			script: []string{"npm ci"},
+			cache:  true,
+		},
+		{
+			name:   "inherit: default: false drops the default cache",
+			src:    "default:\n  cache: {paths: [.npm/]}\nbuild:\n  inherit: {default: false}\n  script: [npm ci]\n",
+			script: []string{"npm ci"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := Parse([]byte(tt.src))
+			if len(p.Problems) != 0 || len(p.Jobs) != 1 {
+				t.Fatalf("problems %+v, %d jobs", p.Problems, len(p.Jobs))
+			}
+			j := p.Jobs[0]
+			if !reflect.DeepEqual(j.Script, tt.script) {
+				t.Errorf("Script = %q, want %q", j.Script, tt.script)
+			}
+			if j.Cache != tt.cache {
+				t.Errorf("Cache = %v, want %v", j.Cache, tt.cache)
+			}
 		})
 	}
 }
