@@ -115,6 +115,10 @@ Releases come from the commits, through
   pull request with the workflow token. Pull requests opened that way do not
   start the CI; the release pull request only changes the changelog and the
   version manifest.
+- The ruleset on `main` requires a pull request with a green `Lint + test`,
+  squash merges only, and refuses force pushes and deletion. Since the release
+  pull request has no CI run, the repository admin merges it through the
+  ruleset's bypass, which applies to pull requests only.
 
 ## Conventions
 
