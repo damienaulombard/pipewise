@@ -259,12 +259,30 @@ func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Jo
 		j.Artifacts = toArtifacts(a)
 		j.Artifacts.Inherited = inherited["artifacts"]
 	}
+	j.Script = append(commands(m["before_script"]), commands(m["script"])...)
+	_, j.Cache = m["cache"]
 	if b, ok := m["interruptible"].(bool); ok {
 		j.Interruptible = &b
 	}
 	_, j.Trigger = m["trigger"]
 	j.Extends = stringList(m["extends"])
 	return j
+}
+
+// commands reads a script: a string, or a list of strings that can nest,
+// as anchors and !reference produce. Anything else holds no command.
+func commands(v any) []string {
+	switch c := v.(type) {
+	case string:
+		return []string{c}
+	case []any:
+		var out []string
+		for _, item := range c {
+			out = append(out, commands(item)...)
+		}
+		return out
+	}
+	return nil
 }
 
 // toRules reads a rules: list. job names the job in problems, empty for

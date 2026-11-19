@@ -19,6 +19,20 @@
     default:
       image: node:<version>@sha256:<digest>
 
+.gitlab-ci.yml:8: info no-cache
+  Job "lint" installs dependencies with npm but has no cache.
+  why: Without a cache, every run downloads the same packages again: time on
+       each pipeline, and a failure whenever the registry is slow or down. A
+       cache keyed on the lockfile is reused until the dependencies change.
+  fix:
+    lint:
+      variables:
+        npm_config_cache: $CI_PROJECT_DIR/.npm
+      cache:
+        - key:
+            files: [package-lock.json]
+          paths: [.npm/]
+
 .gitlab-ci.yml:8: warning no-rules
   Job "lint" has no rules, only or except, so GitLab's defaults decide where it
   runs.
@@ -82,4 +96,4 @@
   why: pipewise cannot tell what this part stands for, so the jobs that depend
        on it are reported as "maybe".
 
-.gitlab-ci.yml: 8 findings: 1 error, 3 warnings, 4 info.
+.gitlab-ci.yml: 9 findings: 1 error, 3 warnings, 5 info.

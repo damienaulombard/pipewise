@@ -193,7 +193,7 @@ func TestRuleIDsAreStable(t *testing.T) {
 	for _, r := range All() {
 		ids = append(ids, r.ID())
 	}
-	if got := strings.Join(ids, ","); got != "redundant-job,no-rules,missing-interruptible,floating-image,artifacts-no-expiry" {
+	if got := strings.Join(ids, ","); got != "redundant-job,no-rules,missing-interruptible,floating-image,artifacts-no-expiry,no-cache" {
 		t.Errorf("rule ids = %s", got)
 	}
 }

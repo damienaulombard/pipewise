@@ -4,9 +4,9 @@ default:
   artifacts:
     paths: [out/]
 
-# No rules: runs on the default branch and the tag (redundant-job, no-rules).
+# No rules: on the default branch and the tag (redundant-job, no-rules); no cache.
 lint:
-  script: [npm run lint]
+  script: [npm ci, npm run lint]
 
 # Merge requests only, not interruptible; tag without digest; no expire_in.
 unit:

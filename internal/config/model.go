@@ -41,6 +41,12 @@ type Job struct {
 	Image *Image
 	// Artifacts is nil when the job declares none.
 	Artifacts *Artifacts
+	// Script is before_script then script, own or inherited, one entry per
+	// command as written, nested lists flattened.
+	Script []string
+	// Cache is true when the job has a `cache:`, own or inherited, even an
+	// empty one: `cache: []` is a decision not to cache.
+	Cache bool
 	// Interruptible is nil when not set.
 	Interruptible *bool
 	// Trigger marks a job that starts a downstream pipeline.
