@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/damienaulombard/pipewise/compare/v0.2.0...v0.3.0) (2026-11-20)
+
+
+### Features
+
+* **rules:** add the no-cache rule ([#68](https://github.com/damienaulombard/pipewise/issues/68)) ([79bdc7a](https://github.com/damienaulombard/pipewise/commit/79bdc7a7e1d0ac3dce656586057bb861512bdee1)), closes [#32](https://github.com/damienaulombard/pipewise/issues/32)
+
 ## [0.2.0](https://github.com/damienaulombard/pipewise/compare/v0.1.0...v0.2.0) (2026-11-16)
 
 
