@@ -41,8 +41,9 @@ internal/gitlab/    minimal API client for fetch (merged YAML)
 testdata/           fixtures and golden files
 ```
 
-Dependencies: `gopkg.in/yaml.v3` and `github.com/spf13/cobra`. Add another
-only with a reason stated in the pull request.
+Dependencies: `go.yaml.in/yaml/v3` (the maintained fork of the archived
+`gopkg.in/yaml.v3`) and `github.com/spf13/cobra`. Add another only with a
+reason stated in the pull request.
 
 ## Public interface
 
