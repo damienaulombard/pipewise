@@ -1,0 +1,15 @@
+on: push
+
+jobs:
+  no-runner:
+    steps:
+      - run: echo
+  bad-step:
+    runs-on: ubuntu-latest
+    steps:
+      - name: neither uses nor run
+  good:
+    needs: missing
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok

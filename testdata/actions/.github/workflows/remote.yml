@@ -1,0 +1,9 @@
+on: push
+
+jobs:
+  shared:
+    uses: acme/ci/.github/workflows/build.yml@v2
+  local:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/damienaulombard/pipewise/internal/actions"
 	"github.com/damienaulombard/pipewise/internal/config"
 	"github.com/damienaulombard/pipewise/internal/eval"
 )
@@ -86,6 +87,12 @@ func Analyze(data []byte, opts eval.Options) *Outcome {
 	for _, r := range All() {
 		out = append(out, r.Check(a)...)
 	}
+	sortFindings(out)
+	return &Outcome{Findings: out, Jobs: res.Jobs}
+}
+
+// sortFindings sorts findings by line, then rule id, then job.
+func sortFindings(out []Finding) {
 	sort.SliceStable(out, func(i, j int) bool {
 		if out[i].Line != out[j].Line {
 			return out[i].Line < out[j].Line
@@ -95,7 +102,6 @@ func Analyze(data []byte, opts eval.Options) *Outcome {
 		}
 		return out[i].Job < out[j].Job
 	})
-	return &Outcome{Findings: out, Jobs: res.Jobs}
 }
 
 func problemFinding(pb config.Problem) Finding {
@@ -109,6 +115,9 @@ func problemFinding(pb config.Problem) Finding {
 		f.Severity = Error
 		f.Explanation = "GitLab would reject this configuration. pipewise keeps reading what it can, " +
 			"but verdicts that depend on this part are unreliable."
+	case actions.KindUnresolvedWorkflow:
+		f.Explanation = "The jobs of that workflow are not analysed. pipewise reads reusable workflows " +
+			"of the same repository from the files next to this one, and never fetches other repositories."
 	case config.KindUnresolvedInclude:
 		f.Explanation = "Jobs from included files are not analysed. " +
 			"Analyse the merged configuration instead: pipewise fetch --project <group/project> | pipewise lint -"
