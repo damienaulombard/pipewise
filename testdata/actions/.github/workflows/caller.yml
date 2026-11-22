@@ -1,0 +1,8 @@
+on: [push, pull_request]
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable.yml
+  deploy:
+    needs: [build]
+    uses: ./.github/workflows/reusable.yml

@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/damienaulombard/pipewise/internal/actions"
 	"github.com/damienaulombard/pipewise/internal/config"
 	"github.com/damienaulombard/pipewise/internal/eval"
 	"github.com/damienaulombard/pipewise/internal/report"
@@ -17,6 +18,7 @@ type explainOptions struct {
 	format        string
 	defaultBranch string
 	skipBranch    string
+	platform      string
 }
 
 func newExplainCmd() *cobra.Command {
@@ -26,7 +28,8 @@ func newExplainCmd() *cobra.Command {
 		Short: "Show what decides whether a job runs on each event",
 		Long: "Show, for a merge request, a push to the default branch and a tag, whether a job runs\n" +
 			"and which part of the configuration decides it.\n" +
-			"The file defaults to .gitlab-ci.yml; pass - to read the configuration from standard input.\n\n" +
+			"The file defaults to .gitlab-ci.yml; pass - to read the configuration from standard input.\n" +
+			"The jobs of a GitHub Actions workflow are not evaluated yet: explain exits with 2 on them.\n\n" +
 			"Exit codes: 0 on success, 2 on a usage or read error, or when the job does not exist.",
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -42,6 +45,7 @@ func newExplainCmd() *cobra.Command {
 	f.StringVar(&o.defaultBranch, "default-branch", "main", "the project's default branch")
 	f.StringVar(&o.skipBranch, "skip-branch-pipelines-for-mrs", "unknown",
 		"the project setting of that name: true, false or unknown")
+	f.StringVar(&o.platform, "platform", "auto", platformUsage)
 	return cmd
 }
 
@@ -57,10 +61,17 @@ func explain(cmd *cobra.Command, job, path string, o explainOptions) error {
 	if err != nil {
 		return err
 	}
+	platform, err := detectPlatform(o.platform, path)
+	if err != nil {
+		return err
+	}
 
 	data, name, err := readConfig(cmd.InOrStdin(), path)
 	if err != nil {
 		return err
+	}
+	if platform == platformGitHub {
+		return explainWorkflow(job, name, data, workflowReader(path))
 	}
 	outcome := rules.Analyze(data, opts)
 	for _, jr := range outcome.Jobs {
@@ -96,4 +107,15 @@ func notExplained(job, file string, findings []rules.Finding) error {
 		return fmt.Errorf("no job %q in %s: %s", job, file, fileProblem)
 	}
 	return fmt.Errorf("no job %q in %s", job, file)
+}
+
+// explainWorkflow answers explain for a GitHub Actions workflow: its jobs
+// get no verdict yet, so there is nothing to show but why.
+func explainWorkflow(job, file string, data []byte, read actions.ReadFunc) error {
+	for _, j := range actions.Parse(data, read).Jobs {
+		if j.Name == job {
+			return fmt.Errorf("job %q is not analysed: GitHub Actions workflows are not evaluated yet", job)
+		}
+	}
+	return notExplained(job, file, rules.AnalyzeWorkflow(data, read).Findings)
 }

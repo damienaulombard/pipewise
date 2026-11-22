@@ -63,9 +63,15 @@ without one, GitLab answers 404, as if the project did not exist.
 | `--fail-on` | `error` | lowest severity that makes the command fail: `error`, `warning`, `info` or `none` |
 | `--default-branch` | `main` | the project's default branch |
 | `--skip-branch-pipelines-for-mrs` | `unknown` | the GitLab project setting of that name: `true`, `false` or `unknown` |
+| `--platform` | `auto` | `gitlab`, `github`, or `auto`: a file under `.github/workflows/` is a GitHub Actions workflow, anything else (standard input included) GitLab CI |
 
 Exit codes: `0` when no finding reaches `--fail-on`, `1` when one does, `2` on
 a usage or read error.
+
+GitHub Actions support is under way: `pipewise lint .github/workflows/ci.yml`
+reads the workflow and the reusable workflows of the same repository it calls,
+and reports what it cannot read. Its jobs get no verdict yet, so no rule runs on
+them, and `explain` exits with `2` on their jobs.
 
 To see why a job runs, or does not, on each event, ask for it by name:
 
@@ -101,6 +107,12 @@ job does not exist.
 | | info | an image is pinned by tag but not by digest |
 | `artifacts-no-expiry` | info | `artifacts:` without `expire_in` |
 | `no-cache` | info | a job installs dependencies (npm, pnpm, yarn, pip, composer, go, bundler, maven, gradle) without a `cache:` |
+
+Problems reading the configuration are findings too: `parse-error` (error),
+`unresolved-include` and `unresolved-reference` (warning) for GitLab CI;
+`parse-error`, `unresolved-workflow` (warning, a reusable workflow of another
+repository, which pipewise never fetches, or one it could not read) and
+`not-evaluated` (info, jobs get no verdict yet) for GitHub Actions.
 
 Rule ids are stable: they are part of pipewise's interface, like the JSON
 report.

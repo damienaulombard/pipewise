@@ -29,15 +29,17 @@ type lintOptions struct {
 	failOn        string
 	defaultBranch string
 	skipBranch    string
+	platform      string
 }
 
 func newLintCmd() *cobra.Command {
 	var o lintOptions
 	cmd := &cobra.Command{
 		Use:   "lint <file|->",
-		Short: "Analyse a GitLab CI configuration",
+		Short: "Analyse a GitLab CI configuration or a GitHub Actions workflow",
 		Long: "Analyse a GitLab CI configuration and report jobs that run more often than they need to.\n" +
-			"Pass - to read the configuration from standard input.\n\n" +
+			"Pass - to read the configuration from standard input.\n" +
+			"A GitHub Actions workflow is parsed and its problems reported; its jobs are not evaluated yet.\n\n" +
 			"Exit codes: 0 when no finding reaches --fail-on, 1 when one does, 2 on a usage or read error.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,6 +53,7 @@ func newLintCmd() *cobra.Command {
 	f.StringVar(&o.defaultBranch, "default-branch", "main", "the project's default branch")
 	f.StringVar(&o.skipBranch, "skip-branch-pipelines-for-mrs", "unknown",
 		"the project setting of that name: true, false or unknown")
+	f.StringVar(&o.platform, "platform", "auto", platformUsage)
 	return cmd
 }
 
@@ -70,12 +73,21 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	if err != nil {
 		return err
 	}
+	platform, err := detectPlatform(o.platform, path)
+	if err != nil {
+		return err
+	}
 
 	data, name, err := readConfig(cmd.InOrStdin(), path)
 	if err != nil {
 		return err
 	}
-	outcome := rules.Analyze(data, opts)
+	var outcome *rules.Outcome
+	if platform == platformGitHub {
+		outcome = rules.AnalyzeWorkflow(data, workflowReader(path))
+	} else {
+		outcome = rules.Analyze(data, opts)
+	}
 	if err := render(cmd.OutOrStdout(), name, outcome); err != nil {
 		return fmt.Errorf("write the report: %w", err)
 	}

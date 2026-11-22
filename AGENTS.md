@@ -11,6 +11,10 @@ runs on three events, and reports the jobs that run more often than they need
 to. It is static analysis only: no service, no network access except
 `pipewise fetch`.
 
+GitHub Actions workflows (`internal/actions`) are parsed, with the reusable
+workflows of the same repository they call; their jobs get no verdict until
+`on:` and `if:` are evaluated.
+
 The three simulated events, with the predefined variables they set
 (`internal/eval/context.go`):
 
@@ -34,6 +38,7 @@ reported, and the analysis goes on with the rest.
 ```
 cmd/pipewise/       CLI (cobra): lint, explain, fetch, version
 internal/config/    YAML → typed model; extends, anchors, !reference
+internal/actions/   GitHub Actions workflow → its own model; local reusable workflows
 internal/eval/      rules evaluator: events, if: expressions, verdicts
 internal/rules/     one rule per file; rule.go holds Rule, Finding, All() and Analyze
 internal/report/    text and JSON output
