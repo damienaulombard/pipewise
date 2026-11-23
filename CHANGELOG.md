@@ -5,8 +5,7 @@
 
 ### Features
 
-* **actions:** parse GitHub Actions workflows and reusable workflows ([adb1bc9](https://github.com/damienaulombard/pipewise/commit/adb1bc9e6641bee6f86e2f673a50048b3ec1b0f4)), closes [#33](https://github.com/damienaulombard/pipewise/issues/33)
-* **actions:** parse GitHub Actions workflows and reusable workflows ([#72](https://github.com/damienaulombard/pipewise/issues/72)) ([adb1bc9](https://github.com/damienaulombard/pipewise/commit/adb1bc9e6641bee6f86e2f673a50048b3ec1b0f4))
+* **actions:** parse GitHub Actions workflows and reusable workflows ([#72](https://github.com/damienaulombard/pipewise/issues/72)) ([adb1bc9](https://github.com/damienaulombard/pipewise/commit/adb1bc9e6641bee6f86e2f673a50048b3ec1b0f4)), closes [#33](https://github.com/damienaulombard/pipewise/issues/33)
 
 ## [0.3.0](https://github.com/damienaulombard/pipewise/compare/v0.2.0...v0.3.0) (2026-11-20)
 
