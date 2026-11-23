@@ -1,0 +1,16 @@
+--- a/testdata/fix/artifacts.gitlab-ci.yml
++++ b/testdata/fix/artifacts.gitlab-ci.yml
+@@ -1,11 +1,13 @@
+ default:
+   interruptible: true
+   artifacts:
++    expire_in: 1 week
+     paths: [reports/]
+ 
+ build:
+   script: [make build]
+   artifacts:
++    expire_in: 1 week
+     # Kept for the next stage only.
+     paths:
+       - bin/

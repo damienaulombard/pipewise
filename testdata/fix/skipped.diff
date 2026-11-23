@@ -1,0 +1,8 @@
+--- a/testdata/fix/skipped.gitlab-ci.yml
++++ b/testdata/fix/skipped.gitlab-ci.yml
+@@ -23,4 +23,5 @@
+ fixed:
+   script: [make fixed]
+   artifacts:
++    expire_in: 1 week
+     paths: [fixed/]
