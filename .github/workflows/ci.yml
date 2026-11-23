@@ -23,7 +23,8 @@ jobs:
           go-version-file: go.mod
       - name: go.mod is tidy
         run: make tidy-check
-      - uses: golangci/golangci-lint-action@v9
+      # Pinned by commit: a moved tag would run other code in this job.
+      - uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.15.0
       - name: Test
