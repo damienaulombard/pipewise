@@ -1,0 +1,11 @@
+# Longer names are other variables, and docker builder is not a build.
+build:
+  stage: build
+  variables:
+    NOTES: $CI_COMMIT_TAG_MESSAGE
+  script:
+    - echo "$CI_COMMIT_TAG_MESSAGE"
+    - docker builder prune -f
+cleanup:
+  script:
+    - docker builder prune --filter until=$CI_COMMIT_TAG

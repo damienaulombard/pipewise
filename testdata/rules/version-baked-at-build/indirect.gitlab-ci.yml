@@ -1,0 +1,10 @@
+# Through top-level variables, two levels deep.
+variables:
+  TAG: $CI_COMMIT_TAG
+  VERSION: v${TAG}
+  UNRELATED: $CI_COMMIT_TAG
+
+package:
+  stage: build
+  script:
+    - make package VERSION=$VERSION

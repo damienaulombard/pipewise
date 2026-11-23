@@ -107,6 +107,7 @@ job does not exist.
 | | info | an image is pinned by tag but not by digest |
 | `artifacts-no-expiry` | info | `artifacts:` without `expire_in` |
 | `no-cache` | info | a job installs dependencies (npm, pnpm, yarn, pip, composer, go, bundler, maven, gradle) without a `cache:` |
+| `version-baked-at-build` | warning | a build job (`docker build`, `buildx`, kaniko, buildah, podman, or stage `build`) reads `CI_COMMIT_TAG`, directly or through `variables:` |
 
 Problems reading the configuration are findings too: `parse-error` (error),
 `unresolved-include` and `unresolved-reference` (warning) for GitLab CI;
@@ -157,8 +158,7 @@ No dates: each step ships when it is ready. The issues of each step are on the
 - **v0.3 — autofix**: `--fix` prints a patch for the findings it can fix
   safely, starting with `missing-interruptible` and `artifacts-no-expiry`,
   then `redundant-job` once the project settings are checked.
-- **v0.4 — more rules**: `e2e-everywhere`, `stages-without-needs`,
-  `version-baked-at-build`.
+- **v0.4 — more rules**: `e2e-everywhere`, `stages-without-needs`.
 - **v1.0 — GitHub Actions**: the same analysis for GitHub Actions workflows,
   and a frozen JSON report and rule ids.
 

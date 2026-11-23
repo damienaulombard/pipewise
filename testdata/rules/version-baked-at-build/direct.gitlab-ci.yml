@@ -1,0 +1,4 @@
+# The build script reads the tag directly.
+image-build:
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:${CI_COMMIT_TAG} .

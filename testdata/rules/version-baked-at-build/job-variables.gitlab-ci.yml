@@ -1,0 +1,6 @@
+# A job variable defined from the tag, read by the build tool.
+kaniko:
+  variables:
+    APP_VERSION: $CI_COMMIT_TAG
+  script:
+    - /kaniko/executor --context . --destination $CI_REGISTRY_IMAGE
