@@ -80,6 +80,24 @@
       "message": "!reference [.missing] could not be found; what it stands for is treated as unknown.",
       "explanation": "pipewise cannot tell what this part stands for, so the jobs that depend on it are reported as \"maybe\".",
       "suggestion": ""
+    },
+    {
+      "rule": "e2e-everywhere",
+      "severity": "warning",
+      "job": "e2e",
+      "line": 26,
+      "message": "Job \"e2e\" is an end-to-end suite and runs 2 times for the same commit: on the merge request and on the default branch.",
+      "explanation": "End-to-end suites are usually the slowest jobs of a pipeline, and on the same commit they give the same answer on every event: each extra run adds their full duration to the pipeline. Run the suite once, on the merge request, where it can still stop the merge; if it is too slow for merge requests, run it on the default branch only.",
+      "suggestion": "e2e:\n  rules:\n    - if: $CI_PIPELINE_SOURCE == \"merge_request_event\"\n"
+    },
+    {
+      "rule": "redundant-job",
+      "severity": "error",
+      "job": "e2e",
+      "line": 26,
+      "message": "Job \"e2e\" runs 2 times for the same commit: on the merge request and on the default branch.",
+      "explanation": "With merged results pipelines and no direct pushes to the default branch, the merge request pipeline already tests the exact commit that lands on the default branch, and a tag only names that commit. Running the job again there cannot find anything new; it only costs runner time and delays the release.",
+      "suggestion": "e2e:\n  rules:\n    - if: $CI_PIPELINE_SOURCE == \"merge_request_event\"\n"
     }
   ],
   "jobs": [
@@ -109,11 +127,20 @@
         "default_branch": "maybe",
         "tag": "maybe"
       }
+    },
+    {
+      "name": "e2e",
+      "line": 26,
+      "verdicts": {
+        "merge_request": "runs",
+        "default_branch": "runs",
+        "tag": "skipped"
+      }
     }
   ],
   "summary": {
-    "error": 1,
-    "warning": 3,
+    "error": 2,
+    "warning": 4,
     "info": 5
   }
 }

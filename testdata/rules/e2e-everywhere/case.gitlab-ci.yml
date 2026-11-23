@@ -1,0 +1,4 @@
+# Detected whatever the case, through only: on the default branch and the tag.
+Playwright:
+  script: [npx playwright test]
+  only: [branches, tags]
