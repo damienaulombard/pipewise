@@ -107,6 +107,7 @@ job does not exist.
 | | info | an image is pinned by tag but not by digest |
 | `artifacts-no-expiry` | info | `artifacts:` without `expire_in` |
 | `no-cache` | info | a job installs dependencies (npm, pnpm, yarn, pip, composer, go, bundler, maven, gradle) without a `cache:` |
+| `stages-without-needs` | info | in a pipeline with two stages or more (not counting `.pre` and `.post`), jobs after the first stage declare no `needs:`; reported once, listing them |
 
 Problems reading the configuration are findings too: `parse-error` (error),
 `unresolved-include` and `unresolved-reference` (warning) for GitLab CI;

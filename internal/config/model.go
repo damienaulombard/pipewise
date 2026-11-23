@@ -13,6 +13,11 @@ type Pipeline struct {
 	// Defaults is what jobs inherit from `default:` and the legacy top-level
 	// keywords, with the line it is written on.
 	Defaults Defaults
+	// Stages is the stage order: `.pre`, the `stages:` list (or GitLab's
+	// default), then `.post`.
+	Stages []string
+	// StagesLine is the line of `stages:` (or `types:`), 0 when absent.
+	StagesLine int
 	// Problems lists what could not be read. Parsing never stops at the
 	// first one: whatever could be read is still in Workflow and Jobs.
 	Problems []Problem
@@ -51,6 +56,12 @@ type Job struct {
 	Interruptible *bool
 	// Trigger marks a job that starts a downstream pipeline.
 	Trigger bool
+	// Needs is true when the job declares `needs:`, own or through extends,
+	// even `needs: []`.
+	Needs bool
+	// Dependencies is nil when the job does not declare `dependencies:`, and
+	// empty for `dependencies: []`.
+	Dependencies []string
 	// Extends lists the parents the job declared, before resolution.
 	Extends []string
 }
