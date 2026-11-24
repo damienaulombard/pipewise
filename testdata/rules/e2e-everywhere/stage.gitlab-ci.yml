@@ -1,0 +1,8 @@
+# Detected by its stage, on every event.
+stages: [build, acceptance-tests]
+
+browser:
+  stage: acceptance-tests
+  script: [make browser-tests]
+  rules:
+    - when: on_success

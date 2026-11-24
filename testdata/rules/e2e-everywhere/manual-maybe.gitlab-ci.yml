@@ -1,0 +1,8 @@
+# Runs on the merge request only; manual and maybe do not count.
+cypress:
+  script: [npx cypress run]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+    - if: $CI_COMMIT_TAG && $RUN_E2E == "true"

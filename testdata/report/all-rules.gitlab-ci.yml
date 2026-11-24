@@ -21,3 +21,13 @@ audit:
   script: [npm audit]
   rules:
     - !reference [.missing]
+
+# End-to-end suite on merge requests and the default branch (e2e-everywhere, redundant-job).
+e2e:
+  inherit:
+    default: false
+  interruptible: true
+  script: [make e2e]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
