@@ -1,0 +1,11 @@
+default:
+  interruptible: true
+
+build:
+  script: [make build]
+  artifacts: &bin
+    paths: [bin/]
+
+package:
+  script: [make package]
+  artifacts: *bin

@@ -1,0 +1,26 @@
+include:
+  - local: templates.yml
+
+.reports: &reports
+  script: [make test]
+  artifacts:
+    paths: [reports/]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+merged:
+  <<: *reports
+  interruptible: true
+
+alias: *reports
+
+flow: {script: [make flow], artifacts: {paths: [flow/]}, interruptible: true}
+
+included:
+  extends: .from-include
+  script: [make build]
+
+fixed:
+  script: [make fixed]
+  artifacts:
+    paths: [fixed/]
