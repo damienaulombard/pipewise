@@ -143,7 +143,9 @@ func TestParseNestedExtends(t *testing.T) {
 			Image:         &Image{Name: "golang:1.26"},
 			Artifacts:     &Artifacts{ExpireIn: "1 day"},
 			Interruptible: ptr(true),
-			Extends:       []string{".go"},
+			// Variables are merged key by key down the extends chain.
+			Variables: map[string]string{"GOFLAGS": "-mod=readonly", "CGO_ENABLED": "1"},
+			Extends:   []string{".go"},
 		},
 		{
 			// The last parent's rules win; artifacts from both are merged.
@@ -153,6 +155,7 @@ func TestParseNestedExtends(t *testing.T) {
 			Image:         &Image{Name: "golang:1.26"},
 			Artifacts:     &Artifacts{ExpireIn: "1 day"},
 			Interruptible: ptr(true),
+			Variables:     map[string]string{"GOFLAGS": "-mod=readonly", "CGO_ENABLED": "1"},
 			Extends:       []string{".go", ".release"},
 		},
 		{Name: "standalone", Line: 39, Stage: "test"},

@@ -13,6 +13,9 @@ type Pipeline struct {
 	// Defaults is what jobs inherit from `default:` and the legacy top-level
 	// keywords, with the line it is written on.
 	Defaults Defaults
+	// Variables are the top-level `variables:`, which every job inherits,
+	// by name; nil when there are none.
+	Variables map[string]string
 	// Problems lists what could not be read. Parsing never stops at the
 	// first one: whatever could be read is still in Workflow and Jobs.
 	Problems []Problem
@@ -51,6 +54,10 @@ type Job struct {
 	Interruptible *bool
 	// Trigger marks a job that starts a downstream pipeline.
 	Trigger bool
+	// Variables are the job's own `variables:`, through extends included,
+	// by name; nil when there are none. A variable written as a mapping
+	// (`value:`, `description:`) is read as its value.
+	Variables map[string]string
 	// Extends lists the parents the job declared, before resolution.
 	Extends []string
 }

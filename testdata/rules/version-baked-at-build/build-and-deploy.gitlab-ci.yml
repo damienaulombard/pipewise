@@ -1,0 +1,7 @@
+# One job builds and deploys with the tag: reported.
+release:
+  stage: deploy
+  script:
+    - podman build -t app:$CI_COMMIT_TAG .
+    - podman push app:$CI_COMMIT_TAG
+    - ./deploy.sh app:$CI_COMMIT_TAG
