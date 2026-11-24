@@ -6,8 +6,7 @@
 ### Features
 
 * **fix:** print a unified diff for lint --fix ([#81](https://github.com/damienaulombard/pipewise/issues/81)) ([bf664fc](https://github.com/damienaulombard/pipewise/commit/bf664fc6a148c78f31b293ab292cd1a8d3452323)), closes [#27](https://github.com/damienaulombard/pipewise/issues/27)
-* **rules:** add the e2e-everywhere rule ([921403a](https://github.com/damienaulombard/pipewise/commit/921403a47ef755d90e222dfefe674e435f122086)), closes [#29](https://github.com/damienaulombard/pipewise/issues/29)
-* **rules:** add the e2e-everywhere rule ([#76](https://github.com/damienaulombard/pipewise/issues/76)) ([921403a](https://github.com/damienaulombard/pipewise/commit/921403a47ef755d90e222dfefe674e435f122086))
+* **rules:** add the e2e-everywhere rule ([#76](https://github.com/damienaulombard/pipewise/issues/76)) ([921403a](https://github.com/damienaulombard/pipewise/commit/921403a47ef755d90e222dfefe674e435f122086)), closes [#29](https://github.com/damienaulombard/pipewise/issues/29)
 * **rules:** add the version-baked-at-build rule ([#78](https://github.com/damienaulombard/pipewise/issues/78)) ([dc6061d](https://github.com/damienaulombard/pipewise/commit/dc6061ddc15adba9ffa009b885fcc57278c8821b)), closes [#31](https://github.com/damienaulombard/pipewise/issues/31)
 
 ## [0.4.0](https://github.com/damienaulombard/pipewise/compare/v0.3.0...v0.4.0) (2026-11-23)
