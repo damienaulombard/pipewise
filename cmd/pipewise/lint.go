@@ -4,10 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/damienaulombard/pipewise/internal/eval"
+	"github.com/damienaulombard/pipewise/internal/fix"
 	"github.com/damienaulombard/pipewise/internal/report"
 	"github.com/damienaulombard/pipewise/internal/rules"
 )
@@ -30,6 +33,8 @@ type lintOptions struct {
 	defaultBranch string
 	skipBranch    string
 	platform      string
+	fix           bool
+	fixExpireIn   string
 }
 
 func newLintCmd() *cobra.Command {
@@ -40,6 +45,10 @@ func newLintCmd() *cobra.Command {
 		Long: "Analyse a GitLab CI configuration and report jobs that run more often than they need to.\n" +
 			"Pass - to read the configuration from standard input.\n" +
 			"A GitHub Actions workflow is parsed and its problems reported; its jobs are not evaluated yet.\n\n" +
+			"With --fix, the report is replaced by a unified diff of the file that fixes the findings of\n" +
+			"missing-interruptible and artifacts-no-expiry; the file itself is not modified:\n" +
+			"  pipewise lint --fix .gitlab-ci.yml | git apply\n" +
+			"A finding the diff cannot fix safely is named on standard error, with the reason.\n\n" +
 			"Exit codes: 0 when no finding reaches --fail-on, 1 when one does, 2 on a usage or read error.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -54,6 +63,10 @@ func newLintCmd() *cobra.Command {
 	f.StringVar(&o.skipBranch, "skip-branch-pipelines-for-mrs", "unknown",
 		"the project setting of that name: true, false or unknown")
 	f.StringVar(&o.platform, "platform", "auto", platformUsage)
+	f.BoolVar(&o.fix, "fix", false,
+		"print a unified diff that fixes missing-interruptible and artifacts-no-expiry, instead of the report")
+	f.StringVar(&o.fixExpireIn, "fix-expire-in", fix.DefaultExpireIn,
+		"the expire_in --fix adds to artifacts")
 	return cmd
 }
 
@@ -77,6 +90,9 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	if err != nil {
 		return err
 	}
+	if err := checkFixOptions(cmd, path, platform, o); err != nil {
+		return err
+	}
 
 	data, name, err := readConfig(cmd.InOrStdin(), path)
 	if err != nil {
@@ -88,7 +104,11 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	} else {
 		outcome = rules.Analyze(data, opts)
 	}
-	if err := render(cmd.OutOrStdout(), name, outcome); err != nil {
+	if o.fix {
+		if err := writeFix(cmd, path, data, outcome, o.fixExpireIn); err != nil {
+			return err
+		}
+	} else if err := render(cmd.OutOrStdout(), name, outcome); err != nil {
 		return fmt.Errorf("write the report: %w", err)
 	}
 
@@ -103,6 +123,46 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	}
 	if n > 0 {
 		return &findingsError{count: n}
+	}
+	return nil
+}
+
+// checkFixOptions checks --fix and --fix-expire-in.
+func checkFixOptions(cmd *cobra.Command, path, platform string, o lintOptions) error {
+	if !o.fix {
+		if cmd.Flags().Changed("fix-expire-in") {
+			return fmt.Errorf("--fix-expire-in only applies with --fix")
+		}
+		return nil
+	}
+	switch {
+	case path == "-":
+		return fmt.Errorf("--fix needs a file: the diff names the file it applies to")
+	case platform == platformGitHub:
+		return fmt.Errorf("--fix applies to GitLab CI configurations only")
+	case strings.TrimSpace(o.fixExpireIn) == "":
+		return fmt.Errorf("--fix-expire-in cannot be empty")
+	case strings.ContainsAny(o.fixExpireIn, "\r\n"):
+		return fmt.Errorf("--fix-expire-in must be on one line")
+	}
+	return nil
+}
+
+// writeFix prints the diff that fixes what it can of outcome, and names on
+// standard error the findings it leaves.
+func writeFix(cmd *cobra.Command, path string, data []byte, outcome *rules.Outcome, expireIn string) error {
+	res := fix.Fix(filepath.ToSlash(filepath.Clean(path)), data, outcome.Findings, fix.Options{ExpireIn: expireIn})
+	for _, s := range res.Skipped {
+		where := "default:"
+		if s.Job != "" {
+			where = fmt.Sprintf("job %q", s.Job)
+		}
+		// Like the report, a message stderr cannot take has nowhere else to go.
+		_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "pipewise: --fix skipped %s on %s (line %d): %s\n",
+			s.Rule, where, s.Line, s.Reason)
+	}
+	if _, err := io.WriteString(cmd.OutOrStdout(), res.Diff); err != nil {
+		return fmt.Errorf("write the diff: %w", err)
 	}
 	return nil
 }

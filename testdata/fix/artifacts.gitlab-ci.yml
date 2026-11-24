@@ -1,0 +1,20 @@
+default:
+  interruptible: true
+  artifacts:
+    paths: [reports/]
+
+build:
+  script: [make build]
+  artifacts:
+    # Kept for the next stage only.
+    paths:
+      - bin/
+
+test:
+  script: [make test]
+
+kept:
+  script: [make docs]
+  artifacts:
+    expire_in: 30 days
+    paths: [public/]
