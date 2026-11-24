@@ -1,0 +1,6 @@
+# Detected by its name, on the merge request and the default branch.
+test:e2e:
+  script: [npm run e2e]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

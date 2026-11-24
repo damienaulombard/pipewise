@@ -1,0 +1,6 @@
+# Not an end-to-end job: redundant-job reports it, e2e-everywhere does not.
+unit:
+  stage: test
+  script: [go test ./...]
+  rules:
+    - when: on_success
