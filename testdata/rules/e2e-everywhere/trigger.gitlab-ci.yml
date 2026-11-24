@@ -1,0 +1,5 @@
+# A trigger job starts another pipeline: not reported.
+e2e:
+  trigger: {project: group/e2e}
+  rules:
+    - when: on_success

@@ -107,6 +107,7 @@ job does not exist.
 | | info | an image is pinned by tag but not by digest |
 | `artifacts-no-expiry` | info | `artifacts:` without `expire_in` |
 | `no-cache` | info | a job installs dependencies (npm, pnpm, yarn, pip, composer, go, bundler, maven, gradle) without a `cache:` |
+| `e2e-everywhere` | warning | an end-to-end job (name or stage containing `e2e`, `end-to-end`, `acceptance`, `cypress`, `playwright` or `selenium`) surely runs on two or more events |
 | `stages-without-needs` | info | in a pipeline with two stages or more (not counting `.pre` and `.post`), jobs after the first stage declare no `needs:`; reported once, listing them |
 
 Problems reading the configuration are findings too: `parse-error` (error),
@@ -120,7 +121,7 @@ report.
 
 pipewise only reports what it can prove from the configuration. What depends
 on things it cannot see (changed files, project variables, the name of a tag)
-is "maybe", and never counts towards `redundant-job`.
+is "maybe", and never counts towards `redundant-job` or `e2e-everywhere`.
 
 ## Why these rules
 

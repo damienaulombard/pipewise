@@ -96,4 +96,30 @@
   why: pipewise cannot tell what this part stands for, so the jobs that depend
        on it are reported as "maybe".
 
-.gitlab-ci.yml: 9 findings: 1 error, 3 warnings, 5 info.
+.gitlab-ci.yml:26: warning e2e-everywhere
+  Job "e2e" is an end-to-end suite and runs 2 times for the same commit: on the
+  merge request and on the default branch.
+  why: End-to-end suites are usually the slowest jobs of a pipeline, and on the
+       same commit they give the same answer on every event: each extra run adds
+       their full duration to the pipeline. Run the suite once, on the merge
+       request, where it can still stop the merge; if it is too slow for merge
+       requests, run it on the default branch only.
+  fix:
+    e2e:
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.gitlab-ci.yml:26: error redundant-job
+  Job "e2e" runs 2 times for the same commit: on the merge request and on the
+  default branch.
+  why: With merged results pipelines and no direct pushes to the default branch,
+       the merge request pipeline already tests the exact commit that lands on
+       the default branch, and a tag only names that commit. Running the job
+       again there cannot find anything new; it only costs runner time and
+       delays the release.
+  fix:
+    e2e:
+      rules:
+        - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+.gitlab-ci.yml: 11 findings: 2 errors, 4 warnings, 5 info.
