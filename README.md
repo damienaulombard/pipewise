@@ -197,7 +197,7 @@ code is organised and the conventions to follow are in [AGENTS.md](AGENTS.md).
 make build   # bin/pipewise
 make test
 make lint
-make check   # tidy check, lint, tests and the coverage of internal/eval, as the CI runs them
+make check   # tidy check, lint, tests and the coverage of internal/eval and internal/rules, as the CI runs them
 ```
 
 The maintainer uses AI agents for triage and routine maintenance; issues,

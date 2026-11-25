@@ -31,5 +31,7 @@ jobs:
         run: make test
       - name: internal/eval at 100 % coverage
         run: make cover-eval
+      - name: internal/rules at 100 % coverage
+        run: make cover-rules
       - name: Build
         run: make build
