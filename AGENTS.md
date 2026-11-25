@@ -66,7 +66,8 @@ the changelog of the release (see Releasing).
 3. Table-driven tests with a fixture per case, including the cases that must
    not be reported.
 4. The rule in the README table, and in `testdata/report/all-rules.*` when it
-   changes the report.
+   changes the report; out of the README Roadmap, where a planned rule is
+   listed (`internal/rules/readme_roadmap_test.go` checks it).
 
 ## Tests
 
