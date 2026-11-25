@@ -1,0 +1,15 @@
+# No job in build: test is the first stage used, and only deploy waits.
+# A job in a stage that is not declared is not listed (GitLab rejects it).
+stages: [build, test, deploy]
+
+unit:
+  stage: test
+  script: [make test]
+
+release:
+  stage: deploy
+  script: [make release]
+
+typo:
+  stage: deplyo
+  script: [make deploy]

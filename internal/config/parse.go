@@ -157,6 +157,7 @@ func (p *parser) parse(data []byte) {
 	}
 	p.parseWorkflow(raw["workflow"], lineOf(entries, "workflow"))
 	p.pipeline.Variables = toVariables(raw["variables"])
+	p.parseStages(raw, entries)
 
 	r := newResolver(raw)
 	defaults := defaultsOf(raw)
@@ -210,6 +211,44 @@ func (p *parser) parseWorkflow(v any, line int) {
 		w.Rules = p.toRules(rules, "", "workflow", line)
 	}
 	p.pipeline.Workflow = w
+}
+
+// defaultStages are the stages GitLab uses when `stages:` is not written.
+var defaultStages = []string{"build", "test", "deploy"}
+
+// parseStages records the stage order: `stages:`, or the legacy `types:`,
+// else GitLab's default, always between `.pre` and `.post`.
+func (p *parser) parseStages(raw map[string]any, entries []entry) {
+	key := "stages"
+	if _, ok := raw[key]; !ok {
+		key = "types"
+	}
+	declared := defaultStages
+	if v, ok := raw[key]; ok {
+		p.pipeline.StagesLine = lineOf(entries, key)
+		list, isList := v.([]any)
+		names := make([]string, 0, len(list))
+		for _, item := range list {
+			if name, isString := item.(string); isString {
+				names = append(names, name)
+			} else {
+				isList = false
+			}
+		}
+		if isList {
+			declared = names
+		} else {
+			p.problem(KindParseError, "", p.pipeline.StagesLine, "%s: must be a list of stage names", key)
+		}
+	}
+	stages := []string{".pre"}
+	for _, s := range declared {
+		if s != ".pre" && s != ".post" {
+			stages = append(stages, s)
+		}
+	}
+	stages = append(stages, ".post")
+	p.pipeline.Stages = stages
 }
 
 // parseDefaults records the default image and artifacts and where they are
@@ -267,6 +306,15 @@ func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Jo
 	}
 	_, j.Trigger = m["trigger"]
 	j.Variables = toVariables(m["variables"])
+	_, j.Needs = m["needs"]
+	if deps, ok := m["dependencies"].([]any); ok {
+		j.Dependencies = make([]string, 0, len(deps))
+		for _, d := range deps {
+			if name, isString := d.(string); isString {
+				j.Dependencies = append(j.Dependencies, name)
+			}
+		}
+	}
 	j.Extends = stringList(m["extends"])
 	return j
 }
