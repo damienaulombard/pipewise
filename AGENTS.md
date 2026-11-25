@@ -75,6 +75,9 @@ the changelog of the release (see Releasing).
   `go test ./internal/report -update` and review the diff.
 - `internal/eval` stays at **100 % coverage**, enforced by `make cover-eval`
   in `make check` and in CI: every verdict depends on it.
+- `internal/rules` stays at **100 % coverage** too, enforced by
+  `make cover-rules` in `make check` and in CI: an untested branch of a rule
+  fails the build instead of waiting for review.
 - An invalid configuration never panics: it becomes a finding and the
   analysis continues.
 
@@ -84,7 +87,7 @@ Go 1.26+ and golangci-lint v2.
 
 ```sh
 make fmt
-make check   # tidy check, lint, tests, coverage of internal/eval
+make check   # tidy check, lint, tests, coverage of internal/eval and internal/rules
 ```
 
 ## Releasing

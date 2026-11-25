@@ -1,7 +1,7 @@
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 
-.PHONY: build test cover cover-eval lint fmt tidy-check check dist
+.PHONY: build test cover cover-eval cover-rules lint fmt tidy-check check dist
 
 build:
 	go build -ldflags "$(LDFLAGS)" -o bin/pipewise ./cmd/pipewise
@@ -18,6 +18,11 @@ cover-eval:
 	go test -coverprofile=coverage-eval.out ./internal/eval/
 	@go tool cover -func=coverage-eval.out | awk '/^total:/ { print "internal/eval coverage: " $$3; if ($$3 != "100.0%") exit 1 }'
 
+# internal/rules holds every finding: an untested branch of a rule fails the build.
+cover-rules:
+	go test -coverprofile=coverage-rules.out ./internal/rules/
+	@go tool cover -func=coverage-rules.out | awk '/^total:/ { print "internal/rules coverage: " $$3; if ($$3 != "100.0%") exit 1 }'
+
 lint:
 	golangci-lint run
 
@@ -28,7 +33,7 @@ fmt:
 tidy-check:
 	go mod tidy -diff
 
-check: tidy-check lint test cover-eval
+check: tidy-check lint test cover-eval cover-rules
 
 PLATFORMS := linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64
 
