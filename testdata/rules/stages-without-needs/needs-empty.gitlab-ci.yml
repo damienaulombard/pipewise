@@ -1,0 +1,19 @@
+# needs: [] is a decision to start at once, own or inherited.
+stages: [build, test]
+
+.independent:
+  needs: []
+
+build:
+  stage: build
+  script: [make]
+
+lint:
+  stage: test
+  script: [make lint]
+  needs: []
+
+docs:
+  extends: .independent
+  stage: test
+  script: [make docs]

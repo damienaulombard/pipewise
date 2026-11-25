@@ -1,0 +1,26 @@
+# Default stages; .pre, .post and trigger jobs are not listed.
+prepare:
+  stage: .pre
+  script: [make prepare]
+
+build:
+  stage: build
+  script: [make]
+
+unit:
+  stage: test
+  script: [make test]
+  needs: [build]
+
+lint:
+  stage: test
+  script: [make lint]
+  dependencies: []
+
+downstream:
+  stage: deploy
+  trigger: {project: group/other}
+
+notify:
+  stage: .post
+  script: [make notify]

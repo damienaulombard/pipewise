@@ -128,6 +128,7 @@ job does not exist.
 | `no-cache` | info | a job installs dependencies (npm, pnpm, yarn, pip, composer, go, bundler, maven, gradle) without a `cache:` |
 | `e2e-everywhere` | warning | an end-to-end job (name or stage containing `e2e`, `end-to-end`, `acceptance`, `cypress`, `playwright` or `selenium`) surely runs on two or more events |
 | `version-baked-at-build` | warning | a build job (`docker build`, `buildx`, kaniko, buildah, podman, or stage `build`) reads `CI_COMMIT_TAG`, directly or through `variables:` |
+| `stages-without-needs` | info | in a pipeline with two stages or more (not counting `.pre` and `.post`), jobs after the first stage declare no `needs:`; reported once, listing them |
 
 Problems reading the configuration are findings too: `parse-error` (error),
 `unresolved-include` and `unresolved-reference` (warning) for GitLab CI;

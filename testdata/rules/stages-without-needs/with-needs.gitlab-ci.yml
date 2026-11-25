@@ -1,0 +1,18 @@
+# Every job after the first stage declares needs: nothing to report.
+stages: [build, test, deploy]
+
+build:
+  stage: build
+  script: [make]
+
+unit:
+  stage: test
+  script: [make test]
+  needs: [build]
+
+deploy:
+  stage: deploy
+  script: [make deploy]
+  needs:
+    - job: unit
+      artifacts: false
