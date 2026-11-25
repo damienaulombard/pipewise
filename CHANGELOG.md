@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.0](https://github.com/damienaulombard/pipewise/compare/v0.5.0...v0.6.0) (2026-11-25)
+
+
+### Features
+
+* **eval:** evaluate GitHub Actions if: expressions, tri-state ([#90](https://github.com/damienaulombard/pipewise/issues/90)) ([4a1e425](https://github.com/damienaulombard/pipewise/commit/4a1e425a44093fe5d41310ed59e71264ae189c97)), closes [#87](https://github.com/damienaulombard/pipewise/issues/87)
+* **eval:** evaluate GitHub Actions on: trigger filters per event ([#91](https://github.com/damienaulombard/pipewise/issues/91)) ([087cfc8](https://github.com/damienaulombard/pipewise/commit/087cfc80cd71301c069aac1a345eafdd1274cad9)), closes [#88](https://github.com/damienaulombard/pipewise/issues/88)
+* **rules:** add the stages-without-needs rule ([#77](https://github.com/damienaulombard/pipewise/issues/77)) ([2a4c65b](https://github.com/damienaulombard/pipewise/commit/2a4c65b9201f418904d26f60df778b331574e014)), closes [#30](https://github.com/damienaulombard/pipewise/issues/30)
+
 ## [0.5.0](https://github.com/damienaulombard/pipewise/compare/v0.4.0...v0.5.0) (2026-11-24)
 
 
