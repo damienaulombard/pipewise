@@ -1,4 +1,5 @@
 /bin/
 coverage.out
 coverage-eval.out
+coverage-rules.out
 /dist/

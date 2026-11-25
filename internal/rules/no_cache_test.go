@@ -44,6 +44,7 @@ func TestNoCache(t *testing.T) {
 			yaml: "default:\n  before_script: [npm ci]\ndownstream:\n  trigger: {project: group/other}\n",
 		},
 		{name: "version and help flags", yaml: "build:\n  script: [yarn --version, mvn -v, ./gradlew --help, npm -h]\n"},
+		{name: "a package manager without a subcommand", yaml: "build:\n  script: [npm, pip --no-cache-dir]\n"},
 		{name: "yarn with only flags", yaml: "build:\n  script: [yarn --frozen-lockfile]\n", managers: "yarn"},
 		{name: "add", yaml: "build:\n  script: [yarn add left-pad]\n", managers: "yarn"},
 		{
