@@ -1,0 +1,14 @@
+# One stage besides .pre and .post: nothing to report.
+prepare:
+  stage: .pre
+  script: [make prepare]
+
+unit:
+  script: [make test]
+
+lint:
+  script: [make lint]
+
+notify:
+  stage: .post
+  script: [make notify]

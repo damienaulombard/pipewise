@@ -1,0 +1,19 @@
+# Three stages and no needs: every job after the first stage is listed.
+stages: [build, test, deploy]
+
+build:
+  stage: build
+  script: [make]
+
+unit:
+  stage: test
+  script: [make test]
+  dependencies: [build]
+
+lint:
+  stage: test
+  script: [make lint]
+
+deploy:
+  stage: deploy
+  script: [make deploy]
