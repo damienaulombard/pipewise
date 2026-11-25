@@ -142,6 +142,8 @@ func TestParseProblems(t *testing.T) {
 			[]config.Problem{{Kind: config.KindParseError, Line: 3, Message: `on: push: branches must be a pattern or a list of patterns`}}},
 		{"filter list with a mapping", "on:\n  push:\n    tags: [{a: b}]\njobs:\n  a:\n    runs-on: x\n    steps: [{run: a}]\n",
 			[]config.Problem{{Kind: config.KindParseError, Line: 3, Message: `on: push: tags must be a pattern or a list of patterns`}}},
+		{"types not a list", "on:\n  pull_request:\n    types: {a: b}\njobs:\n  a:\n    runs-on: x\n    steps: [{run: a}]\n",
+			[]config.Problem{{Kind: config.KindParseError, Line: 3, Message: `on: pull_request: types must be an activity type or a list of activity types`}}},
 		{"schedule takes a list", "on:\n  schedule:\n    - cron: '0 0 * * *'\n  workflow_dispatch:\n    inputs: {}\njobs:\n  a:\n    runs-on: x\n    steps: [{run: a}]\n", nil},
 		{"no jobs", "on: push\n", []config.Problem{{Kind: config.KindParseError,
 			Message: "the workflow has no jobs: keyword"}}},
@@ -190,6 +192,32 @@ func TestParseProblems(t *testing.T) {
 			w := Parse([]byte(tt.yaml), readRoot)
 			if !reflect.DeepEqual(w.Problems, tt.want) {
 				t.Errorf("problems:\n%+v\nwant\n%+v", w.Problems, tt.want)
+			}
+		})
+	}
+}
+
+func TestParseTypes(t *testing.T) {
+	tests := []struct {
+		name string
+		on   string
+		want []string
+	}{
+		{"absent", "on:\n  pull_request:\n    branches: [main]\n", nil},
+		{"list", "on:\n  pull_request:\n    types: [opened, synchronize]\n", []string{"opened", "synchronize"}},
+		{"single string", "on:\n  pull_request:\n    types: labeled\n", []string{"labeled"}},
+		// An empty list sets no activity type: GitHub's defaults apply, as
+		// when types: is absent.
+		{"empty list", "on:\n  pull_request:\n    types: []\n", nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := Parse([]byte(tt.on+"jobs:\n  a:\n    runs-on: x\n    steps: [{run: a}]\n"), readRoot)
+			if len(w.Problems) != 0 || len(w.Triggers) != 1 {
+				t.Fatalf("problems %+v, triggers %+v", w.Problems, w.Triggers)
+			}
+			if !reflect.DeepEqual(w.Triggers[0].Types, tt.want) {
+				t.Errorf("types = %q, want %q", w.Triggers[0].Types, tt.want)
 			}
 		})
 	}

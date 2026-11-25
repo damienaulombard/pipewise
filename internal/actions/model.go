@@ -38,6 +38,9 @@ type Trigger struct {
 	// Paths records that `paths:` or `paths-ignore:` is set: whether the
 	// event starts the workflow then depends on the files of a commit.
 	Paths bool
+	// Types are the activity types of `types:` as written, nil when the
+	// filter is absent.
+	Types []string
 }
 
 // Job is one entry of `jobs:`.
