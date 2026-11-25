@@ -223,6 +223,16 @@ func (p *parser) trigger(kv pair) (Trigger, bool) {
 			t.Paths = true
 			continue
 		}
+		if name == "types" {
+			list, valid := scalars(f.value)
+			if !valid {
+				p.parseError("", f.key.Line, "on: %s: types must be an activity type or a list of activity types", t.Event)
+				ok = false
+				continue
+			}
+			t.Types = list
+			continue
+		}
 		dst, known := filters[name]
 		if !known {
 			continue
