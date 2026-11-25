@@ -156,6 +156,7 @@ func (p *parser) parse(data []byte) {
 			"include: is not resolved; analyse the merged configuration (pipewise fetch) to see the included jobs")
 	}
 	p.parseWorkflow(raw["workflow"], lineOf(entries, "workflow"))
+	p.pipeline.Variables = toVariables(raw["variables"])
 	p.parseStages(raw, entries)
 
 	r := newResolver(raw)
@@ -304,6 +305,7 @@ func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Jo
 		j.Interruptible = &b
 	}
 	_, j.Trigger = m["trigger"]
+	j.Variables = toVariables(m["variables"])
 	_, j.Needs = m["needs"]
 	if deps, ok := m["dependencies"].([]any); ok {
 		j.Dependencies = make([]string, 0, len(deps))
@@ -315,6 +317,34 @@ func (p *parser) toJob(e entry, m map[string]any, inherited map[string]bool) *Jo
 	}
 	j.Extends = stringList(m["extends"])
 	return j
+}
+
+// toVariables reads a `variables:` mapping by name. A variable written as a
+// mapping is read as its `value:`; one with no readable value is left out.
+func toVariables(v any) map[string]string {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return nil
+	}
+	var out map[string]string
+	for name, val := range m {
+		if isHidden(name) {
+			continue
+		}
+		if vm, isMap := val.(map[string]any); isMap {
+			val = vm["value"]
+		}
+		switch val.(type) {
+		case string, int, float64, bool:
+		default:
+			continue
+		}
+		if out == nil {
+			out = map[string]string{}
+		}
+		out[name] = fmt.Sprint(val)
+	}
+	return out
 }
 
 // commands reads a script: a string, or a list of strings that can nest,

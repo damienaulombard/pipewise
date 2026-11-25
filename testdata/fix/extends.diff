@@ -1,0 +1,16 @@
+--- a/testdata/fix/extends.gitlab-ci.yml
++++ b/testdata/fix/extends.gitlab-ci.yml
+@@ -4,6 +4,7 @@
+ .go:
+   image: golang:1.26
+   artifacts:
++    expire_in: 1 week
+     paths: [bin/]
+ 
+ .lint:
+@@ -19,4 +20,5 @@
+ vet:
+   extends: .lint
+   artifacts:
++    expire_in: 1 week
+     paths: [vet.txt]

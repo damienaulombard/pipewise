@@ -13,6 +13,9 @@ type Pipeline struct {
 	// Defaults is what jobs inherit from `default:` and the legacy top-level
 	// keywords, with the line it is written on.
 	Defaults Defaults
+	// Variables are the top-level `variables:`, which every job inherits,
+	// by name; nil when there are none.
+	Variables map[string]string
 	// Stages is the stage order: `.pre`, the `stages:` list (or GitLab's
 	// default), then `.post`.
 	Stages []string
@@ -56,6 +59,10 @@ type Job struct {
 	Interruptible *bool
 	// Trigger marks a job that starts a downstream pipeline.
 	Trigger bool
+	// Variables are the job's own `variables:`, through extends included,
+	// by name; nil when there are none. A variable written as a mapping
+	// (`value:`, `description:`) is read as its value.
+	Variables map[string]string
 	// Needs is true when the job declares `needs:`, own or through extends,
 	// even `needs: []`.
 	Needs bool

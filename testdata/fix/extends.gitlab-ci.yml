@@ -1,0 +1,22 @@
+default:
+  interruptible: true
+
+.go:
+  image: golang:1.26
+  artifacts:
+    paths: [bin/]
+
+.lint:
+  script: [make lint]
+
+build:
+  extends: .go
+  script: [make build]
+
+check:
+  extends: [.go, .lint]
+
+vet:
+  extends: .lint
+  artifacts:
+    paths: [vet.txt]

@@ -1,0 +1,10 @@
+--- a/testdata/fix/anchor.gitlab-ci.yml
++++ b/testdata/fix/anchor.gitlab-ci.yml
+@@ -4,6 +4,7 @@
+ build:
+   script: [make build]
+   artifacts: &bin
++    expire_in: 1 week
+     paths: [bin/]
+ 
+ package:

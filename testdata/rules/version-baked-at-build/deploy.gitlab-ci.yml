@@ -1,0 +1,13 @@
+# A deploy job may use the tag; a build job that does not read it is fine.
+variables:
+  TAG: $CI_COMMIT_TAG
+
+build:
+  stage: build
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+
+publish:
+  stage: deploy
+  script:
+    - docker buildx imagetools create -t $CI_REGISTRY_IMAGE:$TAG $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA

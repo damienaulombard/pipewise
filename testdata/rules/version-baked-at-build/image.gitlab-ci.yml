@@ -1,0 +1,5 @@
+# The tag picks the image the build runs in.
+build:
+  stage: build
+  image: registry.example.com/builder:$CI_COMMIT_TAG
+  script: [make]

@@ -1,0 +1,10 @@
+# The job sets its own TAG, which replaces the top-level one.
+variables:
+  TAG: $CI_COMMIT_TAG
+
+build:
+  stage: build
+  variables:
+    TAG: snapshot
+  script:
+    - docker build -t app:$TAG .

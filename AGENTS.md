@@ -42,6 +42,7 @@ internal/actions/   GitHub Actions workflow → its own model; local reusable wo
 internal/eval/      rules evaluator: events, if: expressions, verdicts
 internal/rules/     one rule per file; rule.go holds Rule, Finding, All() and Analyze
 internal/report/    text and JSON output
+internal/fix/       lint --fix: safe fixes as a unified diff
 internal/gitlab/    minimal API client for fetch (merged YAML)
 testdata/           fixtures and golden files
 ```

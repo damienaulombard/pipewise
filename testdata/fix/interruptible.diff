@@ -1,0 +1,18 @@
+--- a/testdata/fix/interruptible.gitlab-ci.yml
++++ b/testdata/fix/interruptible.gitlab-ci.yml
+@@ -7,6 +7,7 @@
+     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+ 
+ unit:
++  interruptible: true
+   # Comments and key order stay as written.
+   stage: test
+   script:
+@@ -15,6 +16,7 @@
+     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+ 
+ lint:
++  interruptible: true
+   extends: .mr
+   stage: test
+   script: [make lint]

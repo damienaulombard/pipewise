@@ -1,0 +1,6 @@
+# The tag is read in before_script, which runs with the script.
+image-build:
+  before_script:
+    - export VERSION=$CI_COMMIT_TAG
+  script:
+    - docker build --build-arg VERSION .

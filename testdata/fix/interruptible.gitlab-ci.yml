@@ -1,0 +1,32 @@
+# Jobs that run on merge requests get interruptible: true.
+stages: [test, deploy]
+
+.mr:
+  image: golang:1.26
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+unit:
+  # Comments and key order stay as written.
+  stage: test
+  script:
+    - make test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+lint:
+  extends: .mr
+  stage: test
+  script: [make lint]
+
+already:
+  extends: .mr
+  stage: test
+  interruptible: false
+  script: [make vet]
+
+deploy:
+  stage: deploy
+  script: [make deploy]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
