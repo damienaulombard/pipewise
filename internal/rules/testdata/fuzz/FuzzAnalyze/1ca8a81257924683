@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("e: &reports\n  <<: *reports\n  e: \ns: *reports\nw: {t: [],artifacts: {s: []},e}\ne:\n  s: m\n  t: d\ne:\n  t: d\n  s:\n  s: /,")

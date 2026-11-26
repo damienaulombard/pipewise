@@ -223,6 +223,30 @@ func TestParseProblems(t *testing.T) {
 			message: "unknown anchor 'missing'",
 		},
 		{
+			name:    "merge key of the mapping it is written in",
+			src:     ".base: &base\n  <<: *base\n  script: [x]\nbuild:\n  script: [x]\n",
+			kind:    KindParseError,
+			message: "line 2: an alias refers to the mapping or list it is written in",
+		},
+		{
+			name:    "alias of an enclosing mapping",
+			src:     "build: &build\n  script: [x]\n  variables:\n    self: *build\n",
+			kind:    KindParseError,
+			message: "line 4: an alias refers to the mapping or list it is written in",
+		},
+		{
+			name:    "alias of an enclosing list",
+			src:     "build:\n  script: &script [x, *script]\n",
+			kind:    KindParseError,
+			message: "line 2: an alias refers to the mapping or list it is written in",
+		},
+		{
+			name:    "merge key list holding an alias of itself",
+			src:     "build:\n  <<: &sources [*sources]\n  script: [x]\n",
+			kind:    KindParseError,
+			message: "line 2: an alias refers to the mapping or list it is written in",
+		},
+		{
 			name:    "root is not a mapping",
 			src:     "- build\n",
 			kind:    KindParseError,
