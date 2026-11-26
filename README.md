@@ -28,6 +28,12 @@ them.
 ## Install
 
 ```sh
+brew install studio-fita/tap/pipewise
+```
+
+On macOS and Linux, amd64 or arm64. Or with Go:
+
+```sh
 go install github.com/damienaulombard/pipewise/cmd/pipewise@latest
 ```
 

@@ -44,6 +44,7 @@ internal/rules/     one rule per file; rule.go holds Rule, Finding, All() and An
 internal/report/    text and JSON output
 internal/fix/       lint --fix: safe fixes as a unified diff
 internal/gitlab/    minimal API client for fetch (merged YAML)
+tools/formula/      Homebrew formula of a release, for the release workflow
 testdata/           fixtures and golden files
 ```
 
@@ -119,6 +120,16 @@ Releases come from the commits, through
   release pull request (it becomes the release notes) and `CHANGELOG.md` in
   it, just before merging: release-please rewrites that pull request on every
   push to `main`.
+- Once the release is published, the `homebrew` job of the same workflow
+  generates the formula from the release's `SHA256SUMS` (`tools/formula`) and
+  pushes `Formula/pipewise.rb` to the tap `studio-fita/homebrew-tap`. It is
+  the only job that receives the secret `HOMEBREW_TAP_TOKEN`, a fine-grained
+  token limited to that repository, Contents read and write. Releases up to
+  v0.6.0 have no formula: the first one comes with the next release. If the
+  job fails, the release stays published; *Re-run failed jobs* runs it alone,
+  and pushes nothing when the tap already has the formula at that version.
+  A push refused with 401 or 403 means the token expired or lost its access:
+  renew it, update the secret, then re-run.
 - Do not push version tags by hand: the release workflow only builds what
   release-please creates.
 - The repository setting *Settings → Actions → General → Allow GitHub Actions
