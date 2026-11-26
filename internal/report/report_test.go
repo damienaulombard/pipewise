@@ -63,6 +63,21 @@ func TestGolden(t *testing.T) {
 	}
 }
 
+// TestAllRulesFixtureCoversEveryRule keeps all-rules.gitlab-ci.yml, and so
+// its golden files, in step with rules.All(): a new rule must add a case to
+// the fixture.
+func TestAllRulesFixtureCoversEveryRule(t *testing.T) {
+	found := map[string]bool{}
+	for _, f := range outcome(t, "all-rules.gitlab-ci.yml").Findings {
+		found[f.Rule] = true
+	}
+	for _, r := range rules.All() {
+		if !found[r.ID()] {
+			t.Errorf("rule %s has no finding in testdata/report/all-rules.gitlab-ci.yml: add a job that triggers it", r.ID())
+		}
+	}
+}
+
 // TestJSONContract pins the field names and shapes consumers rely on.
 func TestJSONContract(t *testing.T) {
 	var buf bytes.Buffer

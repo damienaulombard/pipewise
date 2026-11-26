@@ -46,6 +46,14 @@
       "suggestion": "lint:\n  rules:\n    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH\n"
     },
     {
+      "rule": "stages-without-needs",
+      "severity": "info",
+      "line": 8,
+      "message": "4 jobs declare no needs:, so each waits for every job of the earlier stages: \"lint\", \"unit\", \"audit\" and \"e2e\".",
+      "explanation": "Without needs:, a job starts only when every job of the earlier stages has finished, even those it does not use: the pipeline lasts as long as the slowest job of each stage, added up. With needs:, a job starts as soon as the jobs it lists are done. The suggestion takes needs: from dependencies: where the job declares them.",
+      "suggestion": "lint:\n  needs: [<jobs it uses>]\nunit:\n  needs: [<jobs it uses>]\naudit:\n  needs: [<jobs it uses>]\ne2e:\n  needs: [<jobs it uses>]\n"
+    },
+    {
       "rule": "artifacts-no-expiry",
       "severity": "info",
       "job": "unit",
@@ -98,6 +106,15 @@
       "message": "Job \"e2e\" runs 2 times for the same commit: on the merge request and on the default branch.",
       "explanation": "With merged results pipelines and no direct pushes to the default branch, the merge request pipeline already tests the exact commit that lands on the default branch, and a tag only names that commit. Running the job again there cannot find anything new; it only costs runner time and delays the release.",
       "suggestion": "e2e:\n  rules:\n    - if: $CI_PIPELINE_SOURCE == \"merge_request_event\"\n"
+    },
+    {
+      "rule": "version-baked-at-build",
+      "severity": "warning",
+      "job": "build",
+      "line": 37,
+      "message": "Build job \"build\" reads CI_COMMIT_TAG in its script, so the tag pipeline builds an artifact that no merge request tested.",
+      "explanation": "The merge request pipeline tested an artifact built without the tag; the tag pipeline builds a new one and ships it untested. Build once with the commit SHA, then on the tag only retag or promote that artifact, and inject the version at deploy time.",
+      "suggestion": "build:\n  # build with the commit SHA, never the tag\n  script:\n    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .\nretag:\n  stage: deploy\n  script:\n    - docker buildx imagetools create -t $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA\n  rules:\n    - if: $CI_COMMIT_TAG\n"
     }
   ],
   "jobs": [
@@ -136,11 +153,20 @@
         "default_branch": "runs",
         "tag": "skipped"
       }
+    },
+    {
+      "name": "build",
+      "line": 37,
+      "verdicts": {
+        "merge_request": "skipped",
+        "default_branch": "skipped",
+        "tag": "runs"
+      }
     }
   ],
   "summary": {
     "error": 2,
-    "warning": 4,
-    "info": 5
+    "warning": 5,
+    "info": 6
   }
 }

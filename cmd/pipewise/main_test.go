@@ -121,7 +121,7 @@ func TestLintOutput(t *testing.T) {
 
 	text := pipewise(t, "", "lint", all)
 	if !strings.Contains(text.stdout, all+":8: error redundant-job") ||
-		!strings.HasSuffix(text.stdout, all+": 11 findings: 2 errors, 4 warnings, 5 info.\n") {
+		!strings.HasSuffix(text.stdout, all+": 13 findings: 2 errors, 5 warnings, 6 info.\n") {
 		t.Errorf("text report:\n%s", text.stdout)
 	}
 
@@ -134,7 +134,7 @@ func TestLintOutput(t *testing.T) {
 	if err := json.Unmarshal([]byte(js.stdout), &report); err != nil {
 		t.Fatalf("JSON report: %v\n%s", err, js.stdout)
 	}
-	if report.Schema != 1 || report.File != all || len(report.Findings) != 11 {
+	if report.Schema != 1 || report.File != all || len(report.Findings) != 13 {
 		t.Errorf("JSON report = %+v", report)
 	}
 }
