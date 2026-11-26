@@ -1,0 +1,20 @@
+--- a/testdata/fix/redundant-only.gitlab-ci.yml
++++ b/testdata/fix/redundant-only.gitlab-ci.yml
+@@ -1,13 +1,11 @@
+ unit:
+   script: [make test]
+-  only:
+-    - branches
+-    - tags
++  rules:
++    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+-  except:
+-    - schedules
+   interruptible: true
+ 
+ docs:
+   interruptible: true
+-  only: [main, tags]
++  rules:
++    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+   script: [make docs]

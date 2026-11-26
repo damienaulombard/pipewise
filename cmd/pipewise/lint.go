@@ -35,6 +35,8 @@ type lintOptions struct {
 	platform      string
 	fix           bool
 	fixExpireIn   string
+	mergedResults string
+	protected     string
 }
 
 func newLintCmd() *cobra.Command {
@@ -48,6 +50,8 @@ func newLintCmd() *cobra.Command {
 			"With --fix, the report is replaced by a unified diff of the file that fixes the findings of\n" +
 			"missing-interruptible and artifacts-no-expiry; the file itself is not modified:\n" +
 			"  pipewise lint --fix .gitlab-ci.yml | git apply\n" +
+			"It fixes redundant-job too, by keeping the job on one event, only when\n" +
+			"--merged-results-pipelines and --protected-default-branch are both true.\n" +
 			"A finding the diff cannot fix safely is named on standard error, with the reason.\n\n" +
 			"Exit codes: 0 when no finding reaches --fail-on, 1 when one does, 2 on a usage or read error.",
 		Args: cobra.ExactArgs(1),
@@ -64,9 +68,13 @@ func newLintCmd() *cobra.Command {
 		"the project setting of that name: true, false or unknown")
 	f.StringVar(&o.platform, "platform", "auto", platformUsage)
 	f.BoolVar(&o.fix, "fix", false,
-		"print a unified diff that fixes missing-interruptible and artifacts-no-expiry, instead of the report")
+		"print a unified diff that fixes missing-interruptible, artifacts-no-expiry and, when both settings below are true, redundant-job, instead of the report")
 	f.StringVar(&o.fixExpireIn, "fix-expire-in", fix.DefaultExpireIn,
 		"the expire_in --fix adds to artifacts")
+	f.StringVar(&o.mergedResults, "merged-results-pipelines", "unknown",
+		"with --fix, whether the project runs merged results pipelines: true, false or unknown")
+	f.StringVar(&o.protected, "protected-default-branch", "unknown",
+		"with --fix, whether the default branch refuses direct pushes (merge only): true, false or unknown")
 	return cmd
 }
 
@@ -90,7 +98,8 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	if err != nil {
 		return err
 	}
-	if err := checkFixOptions(cmd, path, platform, o); err != nil {
+	fixOpts, err := checkFixOptions(cmd, path, platform, o)
+	if err != nil {
 		return err
 	}
 
@@ -105,7 +114,7 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 		outcome = rules.Analyze(data, opts)
 	}
 	if o.fix {
-		if err := writeFix(cmd, path, data, outcome, o.fixExpireIn); err != nil {
+		if err := writeFix(cmd, path, data, outcome, fixOpts); err != nil {
 			return err
 		}
 	} else if err := render(cmd.OutOrStdout(), name, outcome); err != nil {
@@ -127,31 +136,44 @@ func lint(cmd *cobra.Command, path string, o lintOptions) error {
 	return nil
 }
 
-// checkFixOptions checks --fix and --fix-expire-in.
-func checkFixOptions(cmd *cobra.Command, path, platform string, o lintOptions) error {
+// fixOnly are the flags that only apply with --fix.
+var fixOnly = []string{"fix-expire-in", "merged-results-pipelines", "protected-default-branch"}
+
+// checkFixOptions checks --fix and the flags that tune it.
+func checkFixOptions(cmd *cobra.Command, path, platform string, o lintOptions) (fix.Options, error) {
 	if !o.fix {
-		if cmd.Flags().Changed("fix-expire-in") {
-			return fmt.Errorf("--fix-expire-in only applies with --fix")
+		for _, name := range fixOnly {
+			if cmd.Flags().Changed(name) {
+				return fix.Options{}, fmt.Errorf("--%s only applies with --fix", name)
+			}
 		}
-		return nil
+		return fix.Options{}, nil
 	}
 	switch {
 	case path == "-":
-		return fmt.Errorf("--fix needs a file: the diff names the file it applies to")
+		return fix.Options{}, fmt.Errorf("--fix needs a file: the diff names the file it applies to")
 	case platform == platformGitHub:
-		return fmt.Errorf("--fix applies to GitLab CI configurations only")
+		return fix.Options{}, fmt.Errorf("--fix applies to GitLab CI configurations only")
 	case strings.TrimSpace(o.fixExpireIn) == "":
-		return fmt.Errorf("--fix-expire-in cannot be empty")
+		return fix.Options{}, fmt.Errorf("--fix-expire-in cannot be empty")
 	case strings.ContainsAny(o.fixExpireIn, "\r\n"):
-		return fmt.Errorf("--fix-expire-in must be on one line")
+		return fix.Options{}, fmt.Errorf("--fix-expire-in must be on one line")
 	}
-	return nil
+	merged, ok := settingValues[o.mergedResults]
+	if !ok {
+		return fix.Options{}, fmt.Errorf("--merged-results-pipelines must be true, false or unknown, not %q", o.mergedResults)
+	}
+	protected, ok := settingValues[o.protected]
+	if !ok {
+		return fix.Options{}, fmt.Errorf("--protected-default-branch must be true, false or unknown, not %q", o.protected)
+	}
+	return fix.Options{ExpireIn: o.fixExpireIn, MergedResultsPipelines: merged, ProtectedDefaultBranch: protected}, nil
 }
 
 // writeFix prints the diff that fixes what it can of outcome, and names on
 // standard error the findings it leaves.
-func writeFix(cmd *cobra.Command, path string, data []byte, outcome *rules.Outcome, expireIn string) error {
-	res := fix.Fix(filepath.ToSlash(filepath.Clean(path)), data, outcome.Findings, fix.Options{ExpireIn: expireIn})
+func writeFix(cmd *cobra.Command, path string, data []byte, outcome *rules.Outcome, opts fix.Options) error {
+	res := fix.Fix(filepath.ToSlash(filepath.Clean(path)), data, outcome, opts)
 	for _, s := range res.Skipped {
 		where := "default:"
 		if s.Job != "" {

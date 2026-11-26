@@ -1,0 +1,13 @@
+unit:
+  script: [make test]
+  only:
+    - branches
+    - tags
+  except:
+    - schedules
+  interruptible: true
+
+docs:
+  interruptible: true
+  only: [main, tags]
+  script: [make docs]

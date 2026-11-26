@@ -1,0 +1,37 @@
+--- a/testdata/fix/redundant-rules.gitlab-ci.yml
++++ b/testdata/fix/redundant-rules.gitlab-ci.yml
+@@ -5,25 +5,27 @@
+     - if: $CI_COMMIT_TAG
+ 
+ unit:
+-  rules:
+-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH  # also on main
++  interruptible: true
++  rules:
++    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+   script: [make test]
+ 
+ lint:
+   stage: test
+-  rules: [
+-    {if: $CI_COMMIT_BRANCH},
+-    {if: $CI_PIPELINE_SOURCE == "merge_request_event"}]
++  rules:
++    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+   # runs the linters
+   script: [make lint]
+   interruptible: true
+ 
+ build:
++  rules:
++    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+   script: [make build]
+   interruptible: true
+ 
+ reuses:
+   interruptible: true
+   script: [make reuses]
+-  rules: *everywhere
++  rules:
++    - if: $CI_PIPELINE_SOURCE == "merge_request_event"

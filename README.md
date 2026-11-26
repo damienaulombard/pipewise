@@ -70,28 +70,54 @@ without one, GitLab answers 404, as if the project did not exist.
 | `--default-branch` | `main` | the project's default branch |
 | `--skip-branch-pipelines-for-mrs` | `unknown` | the GitLab project setting of that name: `true`, `false` or `unknown` |
 | `--platform` | `auto` | `gitlab`, `github`, or `auto`: a file under `.github/workflows/` is a GitHub Actions workflow, anything else (standard input included) GitLab CI |
-| `--fix` | off | print a unified diff that fixes `missing-interruptible` and `artifacts-no-expiry`, instead of the report |
+| `--fix` | off | print a unified diff that fixes `missing-interruptible`, `artifacts-no-expiry` and, under the two flags below, `redundant-job`, instead of the report |
 | `--fix-expire-in` | `1 week` | the `expire_in` that `--fix` adds to artifacts |
+| `--merged-results-pipelines` | `unknown` | with `--fix`: whether the project runs merged results pipelines, `true`, `false` or `unknown` |
+| `--protected-default-branch` | `unknown` | with `--fix`: whether the default branch refuses direct pushes (merge only), `true`, `false` or `unknown` |
 
 Exit codes: `0` when no finding reaches `--fail-on`, `1` when one does, `2` on
 a usage or read error.
 
-`--fix` writes the fixes that cannot change what a pipeline does as a diff of
-the file, and never modifies the file itself:
+`--fix` writes the fixes as a diff of the file, and never modifies the file
+itself:
 
 ```sh
 pipewise lint --fix .gitlab-ci.yml | git apply
 ```
 
-It adds `interruptible: true` to each job reported by `missing-interruptible`,
-and `expire_in` under the `artifacts:` reported by `artifacts-no-expiry`: the
+The fixes of two rules cannot change what a pipeline does: `--fix` adds
+`interruptible: true` to each job reported by `missing-interruptible`, and
+`expire_in` under the `artifacts:` reported by `artifacts-no-expiry`: the
 job's own, or the one it inherits through `extends` or an anchor, where it is
 written. Every other line is kept as written, comments included. A finding it
 cannot fix without rewriting a line or changing what other jobs share (a key
 from a `<<:` merge key, a parent from an `include:`, a `{...}` mapping) is named
-on standard error with the reason. The exit code is the one `lint` gives
-without `--fix`. `--fix` needs a file, not standard input: the diff names the
-file it applies to.
+on standard error with the reason.
+
+It fixes `redundant-job` too, and that fix changes when a job runs: the job
+keeps the first event it runs on, with the `rules:` the finding suggests. Its
+own `rules:` is replaced, its `only:` and `except:` are removed, and a job
+without them (a `rules:` from `extends` included) gets its own `rules:` as
+its first key. Dropping the other runs is only safe when the merge request
+pipeline tests the commit that lands on the default branch, so this fix is
+written only when you state both project settings:
+
+```sh
+pipewise lint --fix --merged-results-pipelines true --protected-default-branch true .gitlab-ci.yml
+```
+
+Otherwise each `redundant-job` finding is named on standard error, with the
+setting that is missing and where to turn it on in GitLab. pipewise does not
+read these settings from GitLab: `lint` stays offline. A job whose `only:` or
+`except:` comes from `extends`, whose `rules:` holds an anchor other jobs
+may use or a rule that sets more than `if:` (`variables:`, `when:`, ...), or
+that another job of the file lists in its `needs:` or `dependencies:`, is
+left as it is, with the reason. The new `rules:` keeps only that one event:
+the job no longer runs in other pipelines its old `rules:` allowed, such as
+scheduled or API pipelines; review the diff before applying it.
+
+The exit code is the one `lint` gives without `--fix`. `--fix` needs a file,
+not standard input: the diff names the file it applies to.
 
 GitHub Actions support is under way: `pipewise lint .github/workflows/ci.yml`
 reads the workflow and the reusable workflows of the same repository it calls,
@@ -182,9 +208,6 @@ time for changes.
 No dates: each step ships when it is ready. The issues of each step are on the
 [milestones page](https://github.com/damienaulombard/pipewise/milestones).
 
-- **v0.3 — autofix**: `--fix` prints a patch for the findings it can fix
-  safely, starting with `missing-interruptible` and `artifacts-no-expiry`,
-  then `redundant-job` once the project settings are checked.
 - **v1.0 — GitHub Actions**: the same analysis for GitHub Actions workflows,
   and a frozen JSON report and rule ids.
 

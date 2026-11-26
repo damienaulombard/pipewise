@@ -235,3 +235,22 @@ func TestAnalyzeReturnsVerdicts(t *testing.T) {
 		t.Errorf("jobs = %+v", o.Jobs)
 	}
 }
+
+func TestRedundantCondition(t *testing.T) {
+	tests := []struct {
+		verdicts [3]eval.Verdict
+		want     string
+		ok       bool
+	}{
+		{[3]eval.Verdict{eval.Runs, eval.Runs, eval.Skipped}, `$CI_PIPELINE_SOURCE == "merge_request_event"`, true},
+		{[3]eval.Verdict{eval.Skipped, eval.Runs, eval.Runs}, `$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH`, true},
+		{[3]eval.Verdict{eval.Manual, eval.Maybe, eval.Runs}, `$CI_COMMIT_TAG`, true},
+		{[3]eval.Verdict{eval.Skipped, eval.Maybe, eval.Manual}, "", false},
+	}
+	for _, tt := range tests {
+		got, ok := RedundantCondition(eval.JobResult{Verdicts: tt.verdicts})
+		if got != tt.want || ok != tt.ok {
+			t.Errorf("RedundantCondition(%v) = %q, %v; want %q, %v", tt.verdicts, got, ok, tt.want, tt.ok)
+		}
+	}
+}

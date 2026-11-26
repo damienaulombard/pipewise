@@ -137,3 +137,67 @@ func TestLintFixWriteError(t *testing.T) {
 		t.Errorf("unwritable stdout: exit %d, stderr %q", code, errb.String())
 	}
 }
+
+const redundantConfig = `build:
+  script: [make build]
+  interruptible: true
+`
+
+func TestLintFixRedundant(t *testing.T) {
+	path := writeConfig(t, redundantConfig)
+	r := pipewise(t, "", "lint", "--fix", "--fail-on", "none",
+		"--merged-results-pipelines", "true", "--protected-default-branch", "true", path)
+	name := filepath.ToSlash(path)
+	want := "--- a/" + name + "\n+++ b/" + name + "\n" + `@@ -1,3 +1,5 @@
+ build:
++  rules:
++    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+   script: [make build]
+   interruptible: true
+`
+	if r.code != exitOK || r.stdout != want || r.stderr != "" {
+		t.Errorf("got %+v\nwant stdout\n%s", r, want)
+	}
+
+	// Without both preconditions, the job is named on standard error.
+	r = pipewise(t, "", "lint", "--fix", "--fail-on", "none", "--merged-results-pipelines", "true", path)
+	wantErr := "pipewise: --fix skipped redundant-job on job \"build\" (line 1): " +
+		"direct pushes to the default branch are not known to be refused (--protected-default-branch=unknown)"
+	if r.code != exitOK || r.stdout != "" || !strings.HasPrefix(r.stderr, wantErr) ||
+		!strings.Contains(r.stderr, "Settings > Repository > Protected branches") {
+		t.Errorf("got %+v\nwant stderr starting with %q", r, wantErr)
+	}
+
+	// With --fix, the exit code is still the one of the findings.
+	r = pipewise(t, "", "lint", "--fix", "--merged-results-pipelines", "false", "--protected-default-branch", "true", path)
+	if r.code != exitFindings || r.stdout != "" ||
+		!strings.Contains(r.stderr, "merged results pipelines are not enabled (--merged-results-pipelines=false)") {
+		t.Errorf("got %+v", r)
+	}
+}
+
+func TestLintFixRedundantFlags(t *testing.T) {
+	path := writeConfig(t, redundantConfig)
+	tests := []struct {
+		name   string
+		args   []string
+		stderr string
+	}{
+		{"merged results without fix", []string{"lint", "--merged-results-pipelines", "true", path},
+			"--merged-results-pipelines only applies with --fix"},
+		{"protected without fix", []string{"lint", "--protected-default-branch", "true", path},
+			"--protected-default-branch only applies with --fix"},
+		{"merged results value", []string{"lint", "--fix", "--merged-results-pipelines", "yes", path},
+			`--merged-results-pipelines must be true, false or unknown, not "yes"`},
+		{"protected value", []string{"lint", "--fix", "--protected-default-branch", "", path},
+			`--protected-default-branch must be true, false or unknown, not ""`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := pipewise(t, "", tt.args...)
+			if r.code != exitError || r.stdout != "" || r.stderr != "pipewise: "+tt.stderr+"\n" {
+				t.Errorf("got %+v\nwant stderr %q", r, tt.stderr)
+			}
+		})
+	}
+}

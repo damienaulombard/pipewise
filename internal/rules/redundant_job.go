@@ -62,6 +62,18 @@ func (r redundantJob) Check(a *Analysis) []Finding {
 	return out
 }
 
+// RedundantCondition returns the rules: condition that keeps a job on the
+// first event it surely runs on, the one the redundant-job suggestion prints;
+// false when it surely runs on none.
+func RedundantCondition(jr eval.JobResult) (string, bool) {
+	for _, ev := range eval.Events {
+		if jr.On(ev) == eval.Runs {
+			return keepRules[ev], true
+		}
+	}
+	return "", false
+}
+
 // suggestion keeps the job on one event. GitLab rejects rules next to
 // only/except, so a job using them is told to drop them.
 func suggestion(job, rule string, legacy bool) string {

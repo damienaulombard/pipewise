@@ -1,0 +1,20 @@
+--- a/testdata/fix/redundant-extends.gitlab-ci.yml
++++ b/testdata/fix/redundant-extends.gitlab-ci.yml
+@@ -5,6 +5,8 @@
+   interruptible: true
+ 
+ unit:
++  rules:
++    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+   extends: .test
+   script: [make test]
+ 
+@@ -12,6 +14,8 @@
+   image: golang:1.26
+ 
+ build:
++  rules:
++    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+   extends: .go
+   script: [make build]
+   interruptible: true

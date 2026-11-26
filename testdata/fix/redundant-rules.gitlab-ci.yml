@@ -1,0 +1,29 @@
+# Jobs that run on the merge request and on the default branch.
+.everywhere:
+  rules: &everywhere
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_TAG
+
+unit:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH  # also on main
+  script: [make test]
+
+lint:
+  stage: test
+  rules: [
+    {if: $CI_COMMIT_BRANCH},
+    {if: $CI_PIPELINE_SOURCE == "merge_request_event"}]
+  # runs the linters
+  script: [make lint]
+  interruptible: true
+
+build:
+  script: [make build]
+  interruptible: true
+
+reuses:
+  interruptible: true
+  script: [make reuses]
+  rules: *everywhere
