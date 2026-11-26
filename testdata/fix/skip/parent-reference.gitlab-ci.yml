@@ -1,0 +1,10 @@
+# The extends parent that holds the artifacts is a !reference.
+.template:
+  artifacts:
+    paths: [out/]
+
+.parent: !reference [.template]
+
+build:
+  extends: .parent
+  script: [make]

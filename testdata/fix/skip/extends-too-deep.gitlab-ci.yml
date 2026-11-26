@@ -1,0 +1,31 @@
+# The artifacts are 12 extends levels away, one more than GitLab follows.
+.p0:
+  artifacts:
+    paths: [out/]
+.p1:
+  extends: .p0
+.p2:
+  extends: .p1
+.p3:
+  extends: .p2
+.p4:
+  extends: .p3
+.p5:
+  extends: .p4
+.p6:
+  extends: .p5
+.p7:
+  extends: .p6
+.p8:
+  extends: .p7
+.p9:
+  extends: .p8
+.p10:
+  extends: .p9
+.p11:
+  extends: .p10
+.p12:
+  extends: .p11
+build:
+  extends: .p12
+  script: [make]

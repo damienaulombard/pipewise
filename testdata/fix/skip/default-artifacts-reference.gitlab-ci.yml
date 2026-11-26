@@ -1,0 +1,9 @@
+# The default artifacts are a !reference, not a mapping.
+.artifacts:
+  paths: [out/]
+
+default:
+  artifacts: !reference [.artifacts]
+
+build:
+  script: [make]
