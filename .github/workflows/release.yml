@@ -10,7 +10,9 @@ name: Release
 # smoke-tests the binary, uploads the archives and publishes the release. The
 # release is never public without its archives. A release made with the
 # workflow token starts no other workflow, which is why the publish job lives
-# here.
+# here. Once the release is public, the homebrew job pushes its formula to the
+# tap; it is the only job that gets HOMEBREW_TAP_TOKEN, and its failure leaves
+# the release published.
 on:
   push:
     branches: [main]
@@ -76,3 +78,49 @@ jobs:
         run: |
           gh release upload "$TAG" dist/*.tar.gz dist/*.zip dist/SHA256SUMS --clobber
           gh release edit "$TAG" --draft=false
+
+  homebrew:
+    name: Homebrew formula
+    needs: [release-please, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # The checksums of the published archives, not of a new build.
+      - name: Generate the formula
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download "$TAG" --pattern SHA256SUMS --dir "$RUNNER_TEMP"
+          go run ./tools/formula -repo "$GH_REPO" -tag "$TAG" -sums "$RUNNER_TEMP/SHA256SUMS" > "$RUNNER_TEMP/pipewise.rb"
+      # The token is only given to the tap checkout, after the generator ran.
+      - uses: actions/checkout@v7
+        with:
+          repository: studio-fita/homebrew-tap
+          ref: main
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: tap
+      - name: Push the formula to the tap
+        working-directory: tap
+        run: |
+          mkdir -p Formula
+          cp "$RUNNER_TEMP/pipewise.rb" Formula/pipewise.rb
+          git add Formula/pipewise.rb
+          if git diff --cached --quiet; then
+            echo "Formula/pipewise.rb is already at $TAG"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "pipewise $TAG"
+          git push origin HEAD:main
