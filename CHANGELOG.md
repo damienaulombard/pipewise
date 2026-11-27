@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/damienaulombard/pipewise/compare/v0.7.0...v0.7.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **config:** bound YAML alias expansion ([#101](https://github.com/damienaulombard/pipewise/issues/101)) ([c602076](https://github.com/damienaulombard/pipewise/commit/c6020765280207bcbc8ad436de92b715b8c1bf6c)), closes [#99](https://github.com/damienaulombard/pipewise/issues/99)
+
 ## [0.7.0](https://github.com/damienaulombard/pipewise/compare/v0.6.0...v0.7.0) (2026-11-27)
 
 
