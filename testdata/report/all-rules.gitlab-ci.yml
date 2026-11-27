@@ -31,3 +31,14 @@ e2e:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# Image built with the tag in its name (version-baked-at-build); in the build
+# stage, so the jobs of the test stage above wait for it (stages-without-needs).
+build:
+  stage: build
+  inherit:
+    default: false
+  image: docker:27@sha256:0123456789abcdef
+  script: [docker build -t app:$CI_COMMIT_TAG .]
+  rules:
+    - if: $CI_COMMIT_TAG

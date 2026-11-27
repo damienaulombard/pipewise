@@ -58,6 +58,24 @@
       rules:
         - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
+.gitlab-ci.yml:8: info stages-without-needs
+  4 jobs declare no needs:, so each waits for every job of the earlier stages:
+  "lint", "unit", "audit" and "e2e".
+  why: Without needs:, a job starts only when every job of the earlier stages
+       has finished, even those it does not use: the pipeline lasts as long as
+       the slowest job of each stage, added up. With needs:, a job starts as
+       soon as the jobs it lists are done. The suggestion takes needs: from
+       dependencies: where the job declares them.
+  fix:
+    lint:
+      needs: [<jobs it uses>]
+    unit:
+      needs: [<jobs it uses>]
+    audit:
+      needs: [<jobs it uses>]
+    e2e:
+      needs: [<jobs it uses>]
+
 .gitlab-ci.yml:12: info artifacts-no-expiry
   Job "unit" keeps its artifacts with no expire_in.
   why: Artifacts without expire_in are kept as long as the instance default
@@ -122,4 +140,23 @@
       rules:
         - if: $CI_PIPELINE_SOURCE == "merge_request_event"
 
-.gitlab-ci.yml: 11 findings: 2 errors, 4 warnings, 5 info.
+.gitlab-ci.yml:37: warning version-baked-at-build
+  Build job "build" reads CI_COMMIT_TAG in its script, so the tag pipeline
+  builds an artifact that no merge request tested.
+  why: The merge request pipeline tested an artifact built without the tag; the
+       tag pipeline builds a new one and ships it untested. Build once with the
+       commit SHA, then on the tag only retag or promote that artifact, and
+       inject the version at deploy time.
+  fix:
+    build:
+      # build with the commit SHA, never the tag
+      script:
+        - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    retag:
+      stage: deploy
+      script:
+        - docker buildx imagetools create -t $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      rules:
+        - if: $CI_COMMIT_TAG
+
+.gitlab-ci.yml: 13 findings: 2 errors, 5 warnings, 6 info.
