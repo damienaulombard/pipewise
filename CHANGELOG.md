@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/damienaulombard/pipewise/compare/v0.6.0...v0.7.0) (2026-11-27)
+
+
+### Features
+
+* **release:** push a Homebrew formula to the tap on each release ([#92](https://github.com/damienaulombard/pipewise/issues/92)) ([63fa520](https://github.com/damienaulombard/pipewise/commit/63fa52048f0797579e648a55a7b1336489c77c4a)), closes [#80](https://github.com/damienaulombard/pipewise/issues/80)
+
 ## [0.6.0](https://github.com/damienaulombard/pipewise/compare/v0.5.0...v0.6.0) (2026-11-25)
 
 
