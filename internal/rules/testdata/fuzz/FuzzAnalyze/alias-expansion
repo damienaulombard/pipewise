@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("a0: &a0 [x, x, x, x, x, x, x, x, x, x]\na1: &a1 [*a0, *a0, *a0, *a0, *a0, *a0, *a0, *a0, *a0, *a0]\na2: &a2 [*a1, *a1, *a1, *a1, *a1, *a1, *a1, *a1, *a1, *a1]\na3: &a3 [*a2, *a2, *a2, *a2, *a2, *a2, *a2, *a2, *a2, *a2]\na4: &a4 [*a3, *a3, *a3, *a3, *a3, *a3, *a3, *a3, *a3, *a3]\na5: &a5 [*a4, *a4, *a4, *a4, *a4, *a4, *a4, *a4, *a4, *a4]\na6: &a6 [*a5, *a5, *a5, *a5, *a5, *a5, *a5, *a5, *a5, *a5]\na7: &a7 [*a6, *a6, *a6, *a6, *a6, *a6, *a6, *a6, *a6, *a6]\na8: &a8 [*a7, *a7, *a7, *a7, *a7, *a7, *a7, *a7, *a7, *a7]\nbuild:\n  script: [x]\n")

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -29,6 +30,50 @@ type reader struct {
 	// the current node. An alias of one of them has no finite value: yaml.v3
 	// accepts `.base: &base` then `<<: *base` inside it.
 	open map[*yaml.Node]bool
+
+	// produced counts the values read (mappings, lists, scalars), aliased
+	// those read while an alias is followed, and aliasDepth the aliases
+	// being followed. Aliases of aliases grow exponentially: produce stops
+	// the reading the way yaml.v3 guards its own decoding, which does not
+	// apply here since the file is decoded into yaml.Node.
+	produced, aliased, aliasDepth int
+}
+
+// errAliasExpansion is returned once aliases produce too many values.
+var errAliasExpansion = errors.New("the configuration expands its YAML aliases into too many values")
+
+// produce counts one value read, and fails with yaml.v3's rule
+// (go.yaml.in/yaml/v3 v3.0.6, decode.go, allowedAliasRatio): once more than
+// 100 values come from aliases and more than 1 000 are read, the share read
+// through aliases may not exceed allowedAliasRatio.
+func (r *reader) produce() error {
+	r.produced++
+	if r.aliasDepth > 0 {
+		r.aliased++
+	}
+	if r.aliased > 100 && r.produced > 1000 && float64(r.aliased)/float64(r.produced) > allowedAliasRatio(r.produced) {
+		return errAliasExpansion
+	}
+	return nil
+}
+
+const (
+	aliasRatioRangeLow  = 400_000
+	aliasRatioRangeHigh = 4_000_000
+)
+
+// allowedAliasRatio is the share of values read through aliases allowed
+// once produced values are read: 99 % up to 400 000, falling linearly to
+// 10 % at 4 000 000, and 10 % beyond.
+func allowedAliasRatio(produced int) float64 {
+	switch {
+	case produced <= aliasRatioRangeLow:
+		return 0.99
+	case produced >= aliasRatioRangeHigh:
+		return 0.10
+	default:
+		return 0.99 - 0.89*float64(produced-aliasRatioRangeLow)/float64(aliasRatioRangeHigh-aliasRatioRangeLow)
+	}
 }
 
 // toMap converts a mapping node; see reader.
@@ -53,7 +98,16 @@ func (r *reader) value(n *yaml.Node) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		r.aliasDepth++
+		defer func() { r.aliasDepth-- }()
 		return r.value(target)
+	case yaml.MappingNode:
+		return r.mapping(n)
+	}
+	if err := r.produce(); err != nil {
+		return nil, err
+	}
+	switch n.Kind {
 	case yaml.SequenceNode:
 		if n.Tag == "!reference" {
 			return toReference(n)
@@ -69,8 +123,6 @@ func (r *reader) value(n *yaml.Node) (any, error) {
 			out = append(out, v)
 		}
 		return out, nil
-	case yaml.MappingNode:
-		return r.mapping(n)
 	default:
 		var v any
 		if err := n.Decode(&v); err != nil {
@@ -121,6 +173,9 @@ func keyLine(m map[string]any, key string) int {
 }
 
 func (r *reader) mapping(n *yaml.Node) (map[string]any, error) {
+	if err := r.produce(); err != nil {
+		return nil, err
+	}
 	r.open[n] = true
 	defer delete(r.open, n)
 	out := make(map[string]any, len(n.Content)/2+2)
@@ -174,6 +229,8 @@ func (r *reader) mergeSources(n *yaml.Node) ([]map[string]any, error) {
 		if err != nil {
 			return nil, err
 		}
+		r.aliasDepth++
+		defer func() { r.aliasDepth-- }()
 		n = target
 	}
 	switch n.Kind {
