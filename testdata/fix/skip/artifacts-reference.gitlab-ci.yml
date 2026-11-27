@@ -1,0 +1,8 @@
+# The artifacts of the job are a !reference, not a mapping.
+.template:
+  artifacts:
+    paths: [out/]
+
+build:
+  script: [make]
+  artifacts: !reference [.template, artifacts]

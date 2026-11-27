@@ -1,0 +1,10 @@
+# The default artifacts come from a merge key under default:.
+.defaults: &defaults
+  artifacts:
+    paths: [out/]
+
+default:
+  <<: *defaults
+
+build:
+  script: [make]

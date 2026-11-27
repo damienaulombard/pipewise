@@ -1,0 +1,9 @@
+# The whole job is a !reference, not a mapping.
+.template:
+  script: [make]
+  artifacts:
+    paths: [out/]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+build: !reference [.template]
