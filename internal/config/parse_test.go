@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -245,6 +246,18 @@ func TestParseProblems(t *testing.T) {
 			src:     "build:\n  <<: &sources [*sources]\n  script: [x]\n",
 			kind:    KindParseError,
 			message: "line 2: an alias refers to the mapping or list it is written in",
+		},
+		{
+			name:    "aliases of aliases expanding into too many values",
+			src:     aliasBomb(),
+			kind:    KindParseError,
+			message: "the configuration expands its YAML aliases into too many values",
+		},
+		{
+			name:    "merge keys expanding into too many values",
+			src:     mergeBomb(),
+			kind:    KindParseError,
+			message: "the configuration expands its YAML aliases into too many values",
 		},
 		{
 			name:    "root is not a mapping",
@@ -916,5 +929,47 @@ func TestParsePositions(t *testing.T) {
 	}
 	if len(got) != len(want) {
 		t.Errorf("positions for %d entries, want %d: %+v", len(got), len(want), got)
+	}
+}
+
+// aliasBomb returns a 10-line configuration whose lists of aliases of
+// aliases expand into 10^9 values.
+func aliasBomb() string {
+	var b strings.Builder
+	b.WriteString("a0: &a0 [x, x, x, x, x, x, x, x, x, x]\n")
+	for i := 1; i <= 8; i++ {
+		fmt.Fprintf(&b, "a%d: &a%d [%s]\n", i, i, strings.TrimSuffix(strings.Repeat(fmt.Sprintf("*a%d, ", i-1), 10), ", "))
+	}
+	b.WriteString("build:\n  script: [x]\n")
+	return b.String()
+}
+
+// mergeBomb returns the same explosion built with merge keys: each mapping
+// merges the previous one ten times.
+func mergeBomb() string {
+	var b strings.Builder
+	b.WriteString("m0: &m0 {a: x, b: x, c: x, d: x, e: x, f: x, g: x, h: x, i: x, j: x}\n")
+	for i := 1; i <= 8; i++ {
+		fmt.Fprintf(&b, "m%d: &m%d {<<: [%s]}\n", i, i, strings.TrimSuffix(strings.Repeat(fmt.Sprintf("*m%d, ", i-1), 10), ", "))
+	}
+	b.WriteString("build:\n  script: [x]\n")
+	return b.String()
+}
+
+func TestAllowedAliasRatio(t *testing.T) {
+	tests := []struct {
+		produced int
+		want     float64
+	}{
+		{1000, 0.99},
+		{400_000, 0.99},
+		{2_200_000, 0.545},
+		{4_000_000, 0.10},
+		{10_000_000, 0.10},
+	}
+	for _, tt := range tests {
+		if got := allowedAliasRatio(tt.produced); got < tt.want-1e-9 || got > tt.want+1e-9 {
+			t.Errorf("allowedAliasRatio(%d) = %v, want %v", tt.produced, got, tt.want)
+		}
 	}
 }
