@@ -1,0 +1,8 @@
+# The artifacts are an alias of an anchor written as a list item.
+.anchors:
+  - &bin
+    paths: [bin/]
+
+build:
+  script: [make]
+  artifacts: *bin

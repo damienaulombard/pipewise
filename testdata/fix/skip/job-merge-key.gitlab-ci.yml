@@ -1,0 +1,8 @@
+# The job comes from a merge key at the top level.
+.jobs: &jobs
+  build:
+    script: [make]
+    rules:
+      - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+<<: *jobs

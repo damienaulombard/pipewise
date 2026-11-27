@@ -1,0 +1,10 @@
+# default: comes from a merge key at the top level.
+.base: &base
+  default:
+    artifacts:
+      paths: [out/]
+
+<<: *base
+
+build:
+  script: [make]
