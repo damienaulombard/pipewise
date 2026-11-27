@@ -16,7 +16,7 @@ type reference struct {
 
 func (r *reference) String() string { return strings.Join(r.path, ".") }
 
-// toValue converts a YAML node into plain Go values: map[string]any, []any,
+// reader converts YAML nodes into plain Go values: map[string]any, []any,
 // scalars, and *reference for `!reference` tags. Aliases are followed and
 // merge keys (`<<`) applied, the way GitLab reads them: keys written in the
 // mapping win over merged ones, and earlier merge sources win over later ones.
@@ -24,17 +24,45 @@ func (r *reference) String() string { return strings.Join(r.path, ".") }
 // Decoding straight into map[string]any is not enough: yaml.v3 then turns
 // `!reference [.rules, mr]` into the plain list [".rules", "mr"] and the
 // reference is silently lost.
-func toValue(n *yaml.Node) (any, error) {
+type reader struct {
+	// open holds the mappings and lists being read, from the root down to
+	// the current node. An alias of one of them has no finite value: yaml.v3
+	// accepts `.base: &base` then `<<: *base` inside it.
+	open map[*yaml.Node]bool
+}
+
+// toMap converts a mapping node; see reader.
+func toMap(n *yaml.Node) (map[string]any, error) {
+	r := &reader{open: map[*yaml.Node]bool{}}
+	return r.mapping(n)
+}
+
+// follow returns the node an alias points to, or an error when that node is
+// one of those being read.
+func (r *reader) follow(alias *yaml.Node) (*yaml.Node, error) {
+	if r.open[alias.Alias] {
+		return nil, fmt.Errorf("line %d: an alias refers to the mapping or list it is written in", alias.Line)
+	}
+	return alias.Alias, nil
+}
+
+func (r *reader) value(n *yaml.Node) (any, error) {
 	switch n.Kind {
 	case yaml.AliasNode:
-		return toValue(n.Alias)
+		target, err := r.follow(n)
+		if err != nil {
+			return nil, err
+		}
+		return r.value(target)
 	case yaml.SequenceNode:
 		if n.Tag == "!reference" {
 			return toReference(n)
 		}
+		r.open[n] = true
+		defer delete(r.open, n)
 		out := make([]any, 0, len(n.Content))
 		for _, c := range n.Content {
-			v, err := toValue(c)
+			v, err := r.value(c)
 			if err != nil {
 				return nil, err
 			}
@@ -42,7 +70,7 @@ func toValue(n *yaml.Node) (any, error) {
 		}
 		return out, nil
 	case yaml.MappingNode:
-		return toMap(n)
+		return r.mapping(n)
 	default:
 		var v any
 		if err := n.Decode(&v); err != nil {
@@ -92,21 +120,23 @@ func keyLine(m map[string]any, key string) int {
 	return l
 }
 
-func toMap(n *yaml.Node) (map[string]any, error) {
+func (r *reader) mapping(n *yaml.Node) (map[string]any, error) {
+	r.open[n] = true
+	defer delete(r.open, n)
 	out := make(map[string]any, len(n.Content)/2+2)
 	keyLines := map[string]any{}
 	var merged []map[string]any
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		key, val := n.Content[i], n.Content[i+1]
 		if key.Tag == "!!merge" {
-			sources, err := mergeSources(val)
+			sources, err := r.mergeSources(val)
 			if err != nil {
 				return nil, err
 			}
 			merged = append(merged, sources...)
 			continue
 		}
-		v, err := toValue(val)
+		v, err := r.value(val)
 		if err != nil {
 			return nil, err
 		}
@@ -138,21 +168,27 @@ func toMap(n *yaml.Node) (map[string]any, error) {
 }
 
 // mergeSources returns the mappings a `<<` key merges, in precedence order.
-func mergeSources(n *yaml.Node) ([]map[string]any, error) {
+func (r *reader) mergeSources(n *yaml.Node) ([]map[string]any, error) {
 	if n.Kind == yaml.AliasNode {
-		n = n.Alias
+		target, err := r.follow(n)
+		if err != nil {
+			return nil, err
+		}
+		n = target
 	}
 	switch n.Kind {
 	case yaml.MappingNode:
-		m, err := toMap(n)
+		m, err := r.mapping(n)
 		if err != nil {
 			return nil, err
 		}
 		return []map[string]any{m}, nil
 	case yaml.SequenceNode:
+		r.open[n] = true
+		defer delete(r.open, n)
 		var out []map[string]any
 		for _, c := range n.Content {
-			m, err := mergeSources(c)
+			m, err := r.mergeSources(c)
 			if err != nil {
 				return nil, err
 			}
